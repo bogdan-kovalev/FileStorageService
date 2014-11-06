@@ -27,10 +27,15 @@ public class FileStorageImpl implements FileStorage {
     /**
      *
      * @param key unique id
-     * @param input input stream
+     * @param inputStream input stream
      */
     @Override
-    public void saveFile(String key, InputStream input) {
+    public void saveFile(String key, InputStream inputStream) {
+
+    }
+
+    @Override
+    public void saveFile(String key, InputStream inputStream, long liveTimeMillis) {
 
     }
 
@@ -44,7 +49,12 @@ public class FileStorageImpl implements FileStorage {
      * @return free storage space in bytes
      */
     @Override
-    public long getFreeStorageSpace() {
+    public double getFreeStorageSpace() {
         return 0;
+    }
+
+    @Override
+    public void purge(double percents) {
+
     }
 }

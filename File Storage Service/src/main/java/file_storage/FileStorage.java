@@ -6,7 +6,9 @@ import java.io.InputStream;
  * @author Bogdan Kovalev
  */
 public interface FileStorage {
-    void saveFile(String key, InputStream input);
+    void saveFile(String key, InputStream inputStream);
+    void saveFile(String key, InputStream inputStream, long liveTimeMillis);
     InputStream readFile(String key);
-    long getFreeStorageSpace();
+    double getFreeStorageSpace();
+    void purge(double percents);
 }
