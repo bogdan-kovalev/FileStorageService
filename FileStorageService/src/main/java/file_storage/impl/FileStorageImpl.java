@@ -15,20 +15,14 @@ public class FileStorageImpl implements FileStorage {
     private final File rootFolder;
 
     /**
-     *
      * @param maxDiskSpace max disk space can be used (in bytes)
-     * @param rootFolder root folder of file system
+     * @param rootFolder   root folder of file system
      */
     public FileStorageImpl(long maxDiskSpace, File rootFolder) {
         this.maxDiskSpace = maxDiskSpace;
         this.rootFolder = rootFolder;
     }
 
-    /**
-     *
-     * @param key unique id
-     * @param inputStream input stream
-     */
     @Override
     public void saveFile(String key, InputStream inputStream) {
 
@@ -44,8 +38,12 @@ public class FileStorageImpl implements FileStorage {
         return null;
     }
 
+    @Override
+    public void deleteFile(String key) {
+
+    }
+
     /**
-     *
      * @return free storage space in bytes
      */
     @Override
