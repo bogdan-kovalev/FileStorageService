@@ -1,7 +1,7 @@
 package file_storage.impl;
 
 
-import file_storage.FileStorage;
+import file_storage.FileStorageService;
 
 import java.io.File;
 import java.io.InputStream;
@@ -9,7 +9,7 @@ import java.io.InputStream;
 /**
  * @author Bogdan Kovalev
  */
-public class FileStorageImpl implements FileStorage {
+public class FileStorageServiceImpl implements FileStorageService {
 
     private final long maxDiskSpace;
     private final File rootFolder;
@@ -18,29 +18,29 @@ public class FileStorageImpl implements FileStorage {
      * @param maxDiskSpace max disk space can be used (in bytes)
      * @param rootFolder   root folder of file system
      */
-    public FileStorageImpl(long maxDiskSpace, File rootFolder) {
+    public FileStorageServiceImpl(long maxDiskSpace, File rootFolder) {
         this.maxDiskSpace = maxDiskSpace;
         this.rootFolder = rootFolder;
     }
 
     @Override
     public void saveFile(String key, InputStream inputStream) {
-
+        throw new IllegalStateException("Not implemented yet");
     }
 
     @Override
     public void saveFile(String key, InputStream inputStream, long liveTimeMillis) {
-
+        throw new IllegalStateException("Not implemented yet");
     }
 
     @Override
     public InputStream readFile(String key) {
-        return null;
+        throw new IllegalStateException("Not implemented yet");
     }
 
     @Override
     public void deleteFile(String key) {
-
+        throw new IllegalStateException("Not implemented yet");
     }
 
     /**
@@ -48,11 +48,11 @@ public class FileStorageImpl implements FileStorage {
      */
     @Override
     public double getFreeStorageSpace() {
-        return 0;
+        throw new IllegalStateException("Not implemented yet");
     }
 
     @Override
     public void purge(double percents) {
-
+        throw new IllegalStateException("Not implemented yet");
     }
 }

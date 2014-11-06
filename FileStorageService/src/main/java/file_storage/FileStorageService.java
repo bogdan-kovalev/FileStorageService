@@ -5,7 +5,7 @@ import java.io.InputStream;
 /**
  * @author Bogdan Kovalev
  */
-public interface FileStorage {
+public interface FileStorageService {
     /**
      * @param key         unique id
      * @param inputStream input stream
