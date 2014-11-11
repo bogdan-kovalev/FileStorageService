@@ -22,7 +22,8 @@ public class LiveTimeWatcher implements Runnable {
     public LiveTimeWatcher(String storageRoot) {
         new File(storageRoot + separator + dataFolder).mkdir();
         dataFilePath = storageRoot + separator + dataFolder + separator + fileName;
-        if ((new File(dataFilePath).exists())) {
+
+        if (new File(dataFilePath).exists()) {
             try (ObjectInputStream stream = new ObjectInputStream(new FileInputStream(dataFilePath))) {
                 map = (FilesLiveTimeMap) stream.readObject();
             } catch (Exception e) {
@@ -49,6 +50,7 @@ public class LiveTimeWatcher implements Runnable {
                 e.printStackTrace();
             }
         }
+        saveData();
     }
 
     public void addFile(String path, long liveTime) {

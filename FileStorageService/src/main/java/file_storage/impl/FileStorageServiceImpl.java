@@ -13,8 +13,6 @@ import java.nio.file.Files;
 import static java.io.File.separator;
 
 /**
- * The {@code FileStorageServiceImpl} class is implementation of {@code FileStorageService} interface.
- *
  * @author Bogdan Kovalev
  */
 public class FileStorageServiceImpl implements FileStorageService {
@@ -38,7 +36,6 @@ public class FileStorageServiceImpl implements FileStorageService {
 
         liveTimeWatcher = new LiveTimeWatcher(rootFolder);
         final Thread thread = new Thread(liveTimeWatcher);
-        thread.setDaemon(true);
         thread.start();
     }
 
@@ -69,18 +66,8 @@ public class FileStorageServiceImpl implements FileStorageService {
 
     @Override
     public void saveFile(String key, InputStream inputStream, long liveTimeMillis) throws IOException {
-        if (!haveEnoughFreeSpace())
-            throw new IOException("Not enough free space in " + rootFolder);
-
-        String destination = new PathConstructor().constructPathInStorage(key.hashCode());
-
-        new File(rootFolder.concat(separator).concat(destination)).mkdirs();
-
-        final String filePath = rootFolder.concat(separator).concat(destination).concat(separator).concat(key);
-
-        writeFile(filePath, Channels.newChannel(inputStream));
-
-        liveTimeWatcher.addFile(filePath, liveTimeMillis);
+        saveFile(key, inputStream);
+        liveTimeWatcher.addFile(getFilePath(key), liveTimeMillis);
     }
 
     private void writeFile(String filePath, ReadableByteChannel channel) throws IOException {
