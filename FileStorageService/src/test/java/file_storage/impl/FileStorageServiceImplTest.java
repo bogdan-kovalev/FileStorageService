@@ -34,9 +34,11 @@ public class FileStorageServiceImplTest {
     public void testSaveFileWithLiveTime() throws IOException, InterruptedException {
         final FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(2000000, STORAGE_PATH);
 
-        final int liveTimeMillis = 20000;
+        final int liveTimeMillis = 2000;
         final String filename = "fileWithLiveTime";
         fileStorageService.saveFile(filename, new ByteArrayInputStream(new byte[]{}), liveTimeMillis);
+
+        Thread.sleep(liveTimeMillis + 100);
 
         assertFalse(new File(fileStorageService.getFilePath(filename)).exists());
     }
