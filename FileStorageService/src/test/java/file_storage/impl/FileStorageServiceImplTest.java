@@ -70,6 +70,19 @@ public class FileStorageServiceImplTest {
     }
 
     @org.junit.Test
+    public void testStorageNotEnoughSpace() {
+        final String filename = "testStorageSize";
+        IOException ioException = null;
+        try {
+            final FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(3, STORAGE_PATH);
+            fileStorageService.saveFile(filename, new ByteArrayInputStream(new byte[]{1, 1, 1, 1}));
+        } catch (IOException e) {
+            ioException = e;
+        }
+        assertTrue(ioException != null && ioException.getMessage().equals("Not enough free space in " + STORAGE_PATH));
+    }
+
+    @org.junit.Test
     public void testGetFreeStorageSpace() throws Exception {
 
     }

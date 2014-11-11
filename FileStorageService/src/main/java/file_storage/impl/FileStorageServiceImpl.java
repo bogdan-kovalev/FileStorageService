@@ -2,6 +2,7 @@ package file_storage.impl;
 
 
 import file_storage.FileStorageService;
+import org.apache.commons.io.FileUtils;
 
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -52,7 +53,7 @@ public class FileStorageServiceImpl implements FileStorageService {
     @Override
     public void saveFile(String key, InputStream inputStream) throws IOException {
 
-        if (!haveEnoughFreeSpace())
+        if (!haveEnoughFreeSpace(inputStream.available()))
             throw new IOException("Not enough free space in " + rootFolder);
 
         String destination = new PathConstructor().constructPathInStorage(key.hashCode());
@@ -81,8 +82,8 @@ public class FileStorageServiceImpl implements FileStorageService {
         }
     }
 
-    private boolean haveEnoughFreeSpace() {
-        return true;
+    private boolean haveEnoughFreeSpace(int fileSize) {
+        return FileUtils.sizeOfDirectory(new File(rootFolder)) + fileSize < maxDiskSpace;
     }
 
     @Override
