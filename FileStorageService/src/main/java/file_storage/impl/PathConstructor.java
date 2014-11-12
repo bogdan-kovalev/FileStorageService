@@ -24,7 +24,7 @@ public class PathConstructor {
         right_boundary = Integer.MAX_VALUE;
 
         String destination = find(FIRST_HASHCODE_WINDOW_LENGTH, hashcode);
-        if (destination == "") throw new IllegalStateException("Hashcode out of range");
+        if (destination.equals("")) throw new IllegalStateException("Hashcode out of range");
         destination += separator.concat(find(SECOND_HASHCODE_WINDOW_LENGTH, hashcode));
         destination += separator.concat(find(THIRD_HASHCODE_WINDOW_LENGTH, hashcode));
 
