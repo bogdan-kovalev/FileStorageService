@@ -90,7 +90,7 @@ public class FileStorageServiceImplTest {
         try {
             final int maxDiskSpace = 3000;
             final FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(maxDiskSpace, STORAGE_PATH);
-            long fileSize = maxDiskSpace - fileStorageService.getWorkingDataSize() + 100;
+            long fileSize = maxDiskSpace - fileStorageService.getWorkingDataSize() + 1000;
             fileStorageService.saveFile(filename, new ByteArrayInputStream(new byte[(int) fileSize]));
         } catch (IOException e) {
             ioException = e;
