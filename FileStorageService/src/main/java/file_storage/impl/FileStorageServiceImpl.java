@@ -9,9 +9,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
-import java.nio.file.Files;
-
-import static java.io.File.separator;
 
 /**
  * @author Bogdan Kovalev
@@ -30,14 +27,16 @@ public class FileStorageServiceImpl implements FileStorageService {
     public FileStorageServiceImpl(long maxDiskSpace, String rootFolder) throws IOException {
         this.maxDiskSpace = maxDiskSpace;
         this.rootFolder = rootFolder;
-        final File rootDir = new File(rootFolder);
-        if (!rootDir.exists() && !rootDir.mkdir()) {
+
+        if (!createStorage()) {
             throw new IOException("Unable to create storage");
         }
 
         liveTimeWatcher = new LiveTimeWatcher(rootFolder);
-        final Thread thread = new Thread(liveTimeWatcher);
-        thread.start();
+        if (liveTimeWatcher.getDataFileSize() > maxDiskSpace)
+            throw new IOException("Not enough free space in " + rootFolder);
+
+        new Thread(liveTimeWatcher).start();
     }
 
     /**
@@ -52,26 +51,63 @@ public class FileStorageServiceImpl implements FileStorageService {
      */
     @Override
     public void saveFile(String key, InputStream inputStream) throws IOException {
+        writeFile(getFilePath(key), Channels.newChannel(inputStream), inputStream.available());
+    }
 
-        if (!haveEnoughFreeSpace(inputStream.available()))
-            throw new IOException("Not enough free space in " + rootFolder);
-
-        String destination = new PathConstructor().constructPathInStorage(key.hashCode());
-
-        new File(rootFolder.concat(separator).concat(destination)).mkdirs();
-
-        final String filePath = rootFolder.concat(separator).concat(destination).concat(separator).concat(key);
-
-        writeFile(filePath, Channels.newChannel(inputStream));
+    /**
+     * This method provides possibility to saving data represented by {@code String} 'key' and {@code InputStream} 'inputStream'
+     * into disk drive storage.
+     * <p/>
+     * Algorithm will save 'inputStream' into file in storage by using of the hashcode calculated for String 'key'. File
+     * will be deleted after 'liveTimeMillis' milliseconds.
+     *
+     * @param key            unique id
+     * @param inputStream    input stream
+     * @param liveTimeMillis live time of the stored file
+     * @throws IOException
+     */
+    @Override
+    public void saveFile(String key, InputStream inputStream, long liveTimeMillis) throws IOException {
+        final String filePath = getFilePath(key);
+        writeFile(filePath, Channels.newChannel(inputStream), inputStream.available());
+        liveTimeWatcher.addFile(filePath, liveTimeMillis);
     }
 
     @Override
-    public void saveFile(String key, InputStream inputStream, long liveTimeMillis) throws IOException {
-        saveFile(key, inputStream);
-        liveTimeWatcher.addFile(getFilePath(key), liveTimeMillis);
+    public InputStream readFile(String key) {
+        try {
+            return Channels.newInputStream(new FileInputStream(getFilePath(key)).getChannel());
+        } catch (FileNotFoundException e) {
+            return null;
+        }
     }
 
-    private void writeFile(String filePath, ReadableByteChannel channel) throws IOException {
+    @Override
+    public void deleteFile(String key) {
+        new File(getFilePath(key)).delete();
+    }
+
+    /**
+     * @return free storage space in bytes
+     */
+    @Override
+    public long getFreeStorageSpace() {
+        return maxDiskSpace - FileUtils.sizeOfDirectory(new File(rootFolder));
+    }
+
+    @Override
+    public void purge(double percents) {
+        throw new IllegalStateException("Not implemented yet");
+    }
+
+    public long getWorkingDataSize() throws IOException {
+        return liveTimeWatcher.getDataFileSize();
+    }
+
+    private void writeFile(String filePath, ReadableByteChannel channel, long length) throws IOException {
+        if (!haveEnoughFreeSpace(length))
+            throw new IOException("Not enough free space in " + rootFolder);
+
         try (final FileChannel out = new FileOutputStream(filePath).getChannel()) {
             final ByteBuffer buffer = ByteBuffer.allocate(1024);
             while (channel.read(buffer) != -1) {
@@ -82,44 +118,16 @@ public class FileStorageServiceImpl implements FileStorageService {
         }
     }
 
-    private boolean haveEnoughFreeSpace(int fileSize) {
-        return FileUtils.sizeOfDirectory(new File(rootFolder)) + fileSize < maxDiskSpace;
+    private boolean haveEnoughFreeSpace(long fileSize) {
+        return fileSize < getFreeStorageSpace();
     }
 
-    @Override
-    public InputStream readFile(String key) throws FileNotFoundException {
-        String sourceFolderPath = new PathConstructor().constructPathInStorage(key.hashCode());
-        String filePath = rootFolder.concat(separator).concat(sourceFolderPath).concat(separator).concat(key);
-
-        final FileChannel in = new FileInputStream(filePath).getChannel();
-        return Channels.newInputStream(in);
+    private String getFilePath(String key) {
+        return new PathConstructor().constructFilePathInStorage(key, rootFolder);
     }
 
-    @Override
-    public void deleteFile(String key) throws IOException {
-        String sourceFolderPath = new PathConstructor().constructPathInStorage(key.hashCode());
-        String filePath = rootFolder.concat(separator).concat(sourceFolderPath).concat(separator).concat(key);
-        final File file = new File(filePath);
-        Files.deleteIfExists(file.toPath());
+    private boolean createStorage() {
+        final File root = new File(rootFolder);
+        return root.exists() || root.mkdir();
     }
-
-    /**
-     * @return free storage space in bytes
-     */
-    @Override
-    public long getFreeStorageSpace() {
-        throw new IllegalStateException("Not implemented yet");
-    }
-
-    @Override
-    public void purge(double percents) {
-        throw new IllegalStateException("Not implemented yet");
-    }
-
-    public String getFilePath(String key) {
-        String sourceFolder = new PathConstructor().constructPathInStorage(key.hashCode());
-        String filePath = rootFolder.concat(separator).concat(sourceFolder).concat(separator).concat(key);
-        return filePath;
-    }
-
 }

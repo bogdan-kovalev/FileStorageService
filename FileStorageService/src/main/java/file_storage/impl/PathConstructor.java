@@ -1,5 +1,7 @@
 package file_storage.impl;
 
+import java.io.File;
+
 import static java.io.File.separator;
 
 /**
@@ -7,43 +9,49 @@ import static java.io.File.separator;
  */
 public class PathConstructor {
 
-    private static final int FIRST_RANGE = Math.abs(Integer.MIN_VALUE / 32);
-    private static final int SECOND_RANGE = FIRST_RANGE / 32;
-    private static final int THIRD_RANGE = SECOND_RANGE / 64;
+    private static final int FIRST_HASHCODE_WINDOW_LENGTH = Math.abs(Integer.MIN_VALUE / 32);
+    private static final int SECOND_HASHCODE_WINDOW_LENGTH = FIRST_HASHCODE_WINDOW_LENGTH / 32;
+    private static final int THIRD_HASHCODE_WINDOW_LENGTH = SECOND_HASHCODE_WINDOW_LENGTH / 64;
 
-    private long left_range;
-    private long right_range;
+    private long left_boundary;
+    private long right_boundary;
 
-    public String constructPathInStorage(int hashcode) {
-        String path = "";
 
-        left_range = Integer.MIN_VALUE;
-        right_range = Integer.MAX_VALUE;
+    public String constructFilePathInStorage(String key, String rootFolder) {
+        final int hashcode = key.hashCode();
 
-        path += findPath(FIRST_RANGE, hashcode);
-        if (path == "")
-            throw new IllegalStateException("Hashcode is out of range " + Integer.MIN_VALUE + "..." + Integer.MAX_VALUE);
+        left_boundary = Integer.MIN_VALUE;
+        right_boundary = Integer.MAX_VALUE;
 
-        path += separator.concat(findPath(SECOND_RANGE, hashcode));
-        path += separator.concat(findPath(THIRD_RANGE, hashcode));
+        String destination = find(FIRST_HASHCODE_WINDOW_LENGTH, hashcode);
+        if (destination == "") throw new IllegalStateException("Hashcode out of range");
+        destination += separator.concat(find(SECOND_HASHCODE_WINDOW_LENGTH, hashcode));
+        destination += separator.concat(find(THIRD_HASHCODE_WINDOW_LENGTH, hashcode));
 
-        return path;
+        final String destinationPathInStorage = rootFolder.concat(separator).concat(destination);
+
+        new File(destinationPathInStorage).mkdirs();
+
+        final String filePath = destinationPathInStorage.concat(separator).concat(key);
+
+        return filePath;
     }
 
-    private String findPath(int range_unit, int hashcode) {
-        String out = "";
+    private String find(int range, int hashcode) {
+        long right_temp_boundary = left_boundary + range;
 
-        long right_temp_range = left_range + range_unit;
-
-        while (right_temp_range < right_range + 2) {
-            if (hashcode >= left_range & hashcode < right_temp_range) {
-                out = "[" + left_range + "_" + right_temp_range + "]";
-                break;
+        while (right_temp_boundary < right_boundary + 2) {
+            if (hashcode >= left_boundary & hashcode < right_temp_boundary) {
+                right_boundary = right_temp_boundary;
+                return createName(left_boundary, right_temp_boundary);
             }
-            left_range = right_temp_range;
-            right_temp_range += range_unit;
+            left_boundary = right_temp_boundary;
+            right_temp_boundary += range;
         }
-        right_range = right_temp_range;
-        return out;
+        return "";
+    }
+
+    private String createName(long left_boundary, long right_boundary) {
+        return "[" + left_boundary + "_" + right_boundary + "]";
     }
 }
