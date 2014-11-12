@@ -104,8 +104,8 @@ public class FileStorageServiceImpl implements FileStorageService {
         return liveTimeWatcher.getDataFileSize();
     }
 
-    private void writeFile(String filePath, ReadableByteChannel channel, long length) throws IOException {
-        if (!haveEnoughFreeSpace(length))
+    private void writeFile(String filePath, ReadableByteChannel channel, long inputStreamLength) throws IOException {
+        if (!haveEnoughFreeSpace(inputStreamLength))
             throw new IOException("Not enough free space in " + rootFolder);
 
         try (final FileChannel out = new FileOutputStream(filePath).getChannel()) {
