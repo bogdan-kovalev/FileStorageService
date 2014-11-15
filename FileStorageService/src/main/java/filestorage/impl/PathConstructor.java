@@ -1,4 +1,4 @@
-package file_storage.impl;
+package filestorage.impl;
 
 import java.io.File;
 

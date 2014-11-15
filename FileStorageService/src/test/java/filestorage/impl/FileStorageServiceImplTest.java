@@ -1,4 +1,6 @@
-package file_storage.impl;
+package filestorage.impl;
+
+import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -11,10 +13,31 @@ public class FileStorageServiceImplTest {
 
     public static final String STORAGE_PATH = ".".concat(File.separator).concat("storage");
 
-    @org.junit.Test
+    @Test
+    public void testStartStorageService() throws Exception {
+        final int maxDiskSpace = 2000000;
+        FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(maxDiskSpace, STORAGE_PATH);
+        fileStorageService.startService();
+    }
+
+    @Test
+    public void testStopStorageService() throws Exception {
+        final int maxDiskSpace = 2000000;
+        FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(maxDiskSpace, STORAGE_PATH);
+        fileStorageService.startService();
+        Thread.sleep(2000);
+        fileStorageService.stopService();
+        Thread.sleep(2000);
+        fileStorageService.startService();
+        Thread.sleep(2000);
+    }
+
+
+    @Test
     public void testSaveFiles() throws Exception {
         final int maxDiskSpace = 2000000;
         FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(maxDiskSpace, STORAGE_PATH);
+        fileStorageService.startService();
 
         String file1_name = "file1_testSaveFiles";
         String file2_name = "file2_testSaveFiles";
@@ -29,10 +52,11 @@ public class FileStorageServiceImplTest {
         assertTrue(fileStorageService.readFile(file3_name) != null);
     }
 
-    @org.junit.Test
+    @Test
     public void testReadFile() throws IOException {
         final int maxDiskSpace = 2000000;
         FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(maxDiskSpace, STORAGE_PATH);
+        fileStorageService.startService();
 
         String filename = "testReadFile";
         final byte testByte = 77;
@@ -43,24 +67,27 @@ public class FileStorageServiceImplTest {
         assertTrue(file.read() == testByte);
     }
 
-    @org.junit.Test
+    @Test
     public void testSaveFileWithLiveTime() throws IOException, InterruptedException {
         final int maxDiskSpace = 2000000;
         final FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(maxDiskSpace, STORAGE_PATH);
+        fileStorageService.startService();
 
         final int liveTimeMillis = 2000;
         final String filename = "fileWithLiveTime";
         fileStorageService.saveFile(filename, new ByteArrayInputStream(new byte[]{}), liveTimeMillis);
+        fileStorageService.saveFile(filename + "2", new ByteArrayInputStream(new byte[]{}), liveTimeMillis + 30000);
 
         Thread.sleep(liveTimeMillis + 100);
 
         assertTrue(fileStorageService.readFile(filename) == null);
     }
 
-    @org.junit.Test
+    @Test
     public void testDeleteFile() throws IOException {
         final int maxDiskSpace = 2000000;
         FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(maxDiskSpace, STORAGE_PATH);
+        fileStorageService.startService();
 
         String filename = "testDeleteFile";
         fileStorageService.saveFile(filename, new ByteArrayInputStream(new byte[]{}));
@@ -69,13 +96,14 @@ public class FileStorageServiceImplTest {
         assertTrue(fileStorageService.readFile(filename) == null);
     }
 
-    @org.junit.Test
+    @Test
     public void testStorageNotEnoughSpaceForCreateStorage() {
         final String filename = "testStorageSize";
         IOException ioException = null;
         try {
             final int maxDiskSpace = 5;
             final FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(maxDiskSpace, STORAGE_PATH);
+            fileStorageService.startService();
             fileStorageService.saveFile(filename, new ByteArrayInputStream(new byte[]{}));
         } catch (IOException e) {
             ioException = e;
@@ -83,13 +111,14 @@ public class FileStorageServiceImplTest {
         assertTrue(ioException != null && ioException.getMessage().equals("Not enough free space in " + STORAGE_PATH));
     }
 
-    @org.junit.Test
+    @Test
     public void testStorageNotEnoughSpaceForFileSave() {
         final String filename = "testStorageSize";
         IOException ioException = null;
         try {
             final int maxDiskSpace = 3000;
             final FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(maxDiskSpace, STORAGE_PATH);
+            fileStorageService.startService();
             long fileSize = maxDiskSpace - fileStorageService.getWorkingDataSize() + 1000;
             fileStorageService.saveFile(filename, new ByteArrayInputStream(new byte[(int) fileSize]));
         } catch (IOException e) {
@@ -98,14 +127,15 @@ public class FileStorageServiceImplTest {
         assertTrue(ioException != null && ioException.getMessage().equals("Not enough free space in " + STORAGE_PATH));
     }
 
-    @org.junit.Test
+    @Test
     public void testGetFreeStorageSpace() throws Exception {
         FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(2000000, STORAGE_PATH);
+        fileStorageService.startService();
         final long freeStorageSpace = fileStorageService.getFreeStorageSpace();
         assertTrue(freeStorageSpace > 0 & freeStorageSpace < 2000000);
     }
 
-    @org.junit.Test
+    @Test
     public void testPurge() throws Exception {
 
     }

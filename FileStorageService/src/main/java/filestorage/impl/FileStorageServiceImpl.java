@@ -1,24 +1,29 @@
-package file_storage.impl;
+package filestorage.impl;
 
 
-import file_storage.FileStorageService;
-import org.apache.commons.io.FileUtils;
+import filestorage.FileStorageService;
 
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
+import java.nio.file.Files;
 
 /**
  * @author Bogdan Kovalev
  */
 public class FileStorageServiceImpl implements FileStorageService {
 
+    private boolean serviceIsStarted = false;
+
     private final long maxDiskSpace;
     private final String rootFolder;
 
     private LiveTimeWatcher liveTimeWatcher;
+    private StorageSpaceInspector storageSpaceInspector;
+    private Thread storageSpaceInspectorThread;
+    private Thread liveTimeWatcherThread;
 
     /**
      * @param maxDiskSpace max disk space can be used (in bytes)
@@ -31,12 +36,42 @@ public class FileStorageServiceImpl implements FileStorageService {
         if (!createStorage()) {
             throw new IOException("Unable to create storage");
         }
+    }
 
-        liveTimeWatcher = new LiveTimeWatcher(rootFolder);
-        if (liveTimeWatcher.getDataFileSize() > maxDiskSpace)
+    public void startService() throws IOException {
+        if (serviceIsStarted) {
+            return;
+        }
+        storageSpaceInspector = new StorageSpaceInspector(maxDiskSpace, rootFolder);
+        storageSpaceInspectorThread = new Thread(storageSpaceInspector);
+        storageSpaceInspectorThread.start();
+
+        liveTimeWatcher = new LiveTimeWatcher(rootFolder, storageSpaceInspector);
+        if (liveTimeWatcher.getDataFileSize() > storageSpaceInspector.getFreeSpace()) {
+            // TODO not enough free space exception
             throw new IOException("Not enough free space in " + rootFolder);
+        }
 
-        new Thread(liveTimeWatcher).start();
+        liveTimeWatcherThread = new Thread(liveTimeWatcher);
+        liveTimeWatcherThread.start();
+        serviceIsStarted = true;
+    }
+
+    public void stopService() {
+        if (!serviceIsStarted) {
+            return;
+        }
+
+        storageSpaceInspectorThread.interrupt();
+        liveTimeWatcherThread.interrupt();
+
+        storageSpaceInspector = null;
+        liveTimeWatcher = null;
+
+        storageSpaceInspectorThread = null;
+        liveTimeWatcherThread = null;
+
+        serviceIsStarted = false;
     }
 
     /**
@@ -51,7 +86,10 @@ public class FileStorageServiceImpl implements FileStorageService {
      */
     @Override
     public void saveFile(String key, InputStream inputStream) throws IOException {
-        writeFile(getFilePath(key), Channels.newChannel(inputStream), inputStream.available());
+        if (!serviceIsStarted)
+            //TODO throw ServiceIsNotStartedException
+            throw new IllegalStateException();
+        writeFile(getFilePath(key), Channels.newChannel(inputStream));
     }
 
     /**
@@ -68,13 +106,19 @@ public class FileStorageServiceImpl implements FileStorageService {
      */
     @Override
     public void saveFile(String key, InputStream inputStream, long liveTimeMillis) throws IOException {
+        if (!serviceIsStarted)
+            //TODO throw ServiceIsNotStartedException
+            throw new IllegalStateException();
         final String filePath = getFilePath(key);
-        writeFile(filePath, Channels.newChannel(inputStream), inputStream.available());
+        writeFile(filePath, Channels.newChannel(inputStream));
         liveTimeWatcher.addFile(filePath, liveTimeMillis);
     }
 
     @Override
     public InputStream readFile(String key) {
+        if (!serviceIsStarted)
+            //TODO throw ServiceIsNotStartedException
+            throw new IllegalStateException();
         try {
             return Channels.newInputStream(new FileInputStream(getFilePath(key)).getChannel());
         } catch (FileNotFoundException e) {
@@ -84,7 +128,17 @@ public class FileStorageServiceImpl implements FileStorageService {
 
     @Override
     public void deleteFile(String key) {
-        new File(getFilePath(key)).delete();
+        if (!serviceIsStarted)
+            //TODO throw ServiceIsNotStartedException
+            throw new IllegalStateException();
+        final File file = new File(getFilePath(key));
+        try {
+            final long length = file.length();
+            if (Files.deleteIfExists(file.toPath()))
+                storageSpaceInspector.incrementFreeSpace(length);
+        } catch (IOException e) {
+            //TODO файл не может быть удален
+        }
     }
 
     /**
@@ -92,34 +146,47 @@ public class FileStorageServiceImpl implements FileStorageService {
      */
     @Override
     public long getFreeStorageSpace() {
-        return maxDiskSpace - FileUtils.sizeOfDirectory(new File(rootFolder));
+        if (!serviceIsStarted)
+            //TODO throw ServiceIsNotStartedException
+            throw new IllegalStateException();
+        return storageSpaceInspector.getFreeSpace();
     }
 
     @Override
     public void purge(double percents) {
+        if (!serviceIsStarted)
+            //TODO throw ServiceIsNotStartedException
+            throw new IllegalStateException();
         throw new IllegalStateException("Not implemented yet");
     }
 
     public long getWorkingDataSize() throws IOException {
+        if (!serviceIsStarted)
+            //TODO throw ServiceIsNotStartedException
+            throw new IllegalStateException();
         return liveTimeWatcher.getDataFileSize();
     }
 
-    private void writeFile(String filePath, ReadableByteChannel channel, long inputStreamLength) throws IOException {
-        if (!haveEnoughFreeSpace(inputStreamLength))
-            throw new IOException("Not enough free space in " + rootFolder);
-
+    private void writeFile(String filePath, ReadableByteChannel channel) throws IOException {
         try (final FileChannel out = new FileOutputStream(filePath).getChannel()) {
             final ByteBuffer buffer = ByteBuffer.allocate(1024);
             while (channel.read(buffer) != -1) {
+                if (!haveEnoughFreeSpace()) {
+                    // TODO файл не дописан до конца, значит его нужно удалить. Кинуть соответствующий эксепшн
+                    throw new IOException("Not enough free space in " + rootFolder);
+                }
                 buffer.flip();
                 out.write(buffer);
+
+                storageSpaceInspector.decrementFreeSpace(buffer.position());
+
                 buffer.clear();
             }
         }
     }
 
-    private boolean haveEnoughFreeSpace(long fileSize) {
-        return fileSize < getFreeStorageSpace();
+    private boolean haveEnoughFreeSpace() {
+        return getFreeStorageSpace() > 1024;
     }
 
     private String getFilePath(String key) {
