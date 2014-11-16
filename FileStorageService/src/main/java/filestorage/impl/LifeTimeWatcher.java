@@ -12,12 +12,12 @@ import static java.io.File.separator;
 /**
  * @author Bogdan Kovalev.
  */
-public class LiveTimeWatcher implements Runnable {
+public class LifeTimeWatcher implements Runnable {
 
     public final static String DATA_FOLDER_NAME = "data";
     public final static String FILE_NAME = "storage.data";
 
-    private final static String liveTimeDataFilePath = separator.concat(DATA_FOLDER_NAME).concat(separator).concat(FILE_NAME);
+    private final static String lifeTimeDataFilePath = separator.concat(DATA_FOLDER_NAME).concat(separator).concat(FILE_NAME);
     private final static String dataFolderPath = separator.concat(DATA_FOLDER_NAME);
 
     private final String filePath;
@@ -27,10 +27,10 @@ public class LiveTimeWatcher implements Runnable {
 
     private final Properties storageData = new Properties();
 
-    public LiveTimeWatcher(String storageRoot, StorageSpaceInspector inspector) {
+    public LifeTimeWatcher(String storageRoot, StorageSpaceInspector inspector) {
         storageSpaceInspector = inspector;
 
-        filePath = storageRoot.concat(liveTimeDataFilePath);
+        filePath = storageRoot.concat(lifeTimeDataFilePath);
 
         try {
             storageData.load(new FileInputStream(filePath));
@@ -58,8 +58,8 @@ public class LiveTimeWatcher implements Runnable {
                 storageData.remove(path);
             } catch (IOException e) {
                 e.printStackTrace();
-                }
             }
+        }
 
         saveData();
     }
@@ -70,11 +70,12 @@ public class LiveTimeWatcher implements Runnable {
     }
 
     private void saveData() {
-        if (storageSpaceInspector.getFreeSpace() < getDataObjectSize())
-            return;
+        if (!haveEnoughFreeSpaceToStore())
+            //TODO not enough free space
+            throw new IllegalStateException("not enough free space");
 
-        try (final FileOutputStream outputStream = new FileOutputStream(filePath)) {
-            storageData.store(outputStream, null);
+        try (final FileOutputStream fileOutputStream = new FileOutputStream(filePath)) {
+            storageData.store(fileOutputStream, null);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -83,8 +84,8 @@ public class LiveTimeWatcher implements Runnable {
     @Override
     public void run() {
         while (run) {
+            checkFiles();
             try {
-                checkFiles();
                 Thread.sleep(500);
             } catch (InterruptedException e) {
                 run = false;
@@ -95,19 +96,20 @@ public class LiveTimeWatcher implements Runnable {
 
     public long getDataFileSize() {
         final File file = new File(filePath);
-        if (file.exists())
-            return file.length();
-        else
-            return getDataObjectSize();
+        return file.length();
     }
 
-    private long getDataObjectSize() {
-        ByteArrayOutputStream byteObject = new ByteArrayOutputStream();
-        try (final ObjectOutputStream outputStream = new ObjectOutputStream(byteObject)) {
-            outputStream.writeObject(storageData);
+    private synchronized boolean haveEnoughFreeSpaceToStore() {
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        try {
+            storageData.store(outputStream, null);
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return byteObject.toByteArray().length;
+        File currentDataFile = new File(filePath);
+
+        return outputStream.size() <
+                // free storage space with taking account to space that will freed after current data file deleting
+                storageSpaceInspector.getFreeSpace() + currentDataFile.length();
     }
 }

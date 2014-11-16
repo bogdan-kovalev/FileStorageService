@@ -14,6 +14,29 @@ public class FileStorageServiceImplTest {
     public static final String STORAGE_PATH = ".".concat(File.separator).concat("storage");
 
     @Test
+    public void testFileLock() throws Exception {
+        final int maxDiskSpace = 2000000;
+        final FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(maxDiskSpace, STORAGE_PATH);
+        fileStorageService.startService();
+
+        final String file_name = "testFileLock";
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    fileStorageService.saveFile(file_name, new ByteArrayInputStream(new byte[]{}));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
+
+        Thread.sleep(500);
+        fileStorageService.saveFile(file_name, new ByteArrayInputStream(new byte[]{}));
+    }
+
+    @Test
     public void testSaveFiles() throws Exception {
         final int maxDiskSpace = 2000000;
         FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(maxDiskSpace, STORAGE_PATH);
