@@ -1,8 +1,5 @@
 package filestorage.impl;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,7 +18,7 @@ public class PathConstructor {
         add(get(1) / 128);
     }};
 
-    public static String constructFilePathInStorage(String key, String rootFolder) {
+    public static String findDestinationPath(String key, String rootFolder) {
         final int hashcode = key.hashCode();
 
         String path = "";
@@ -32,14 +29,7 @@ public class PathConstructor {
             path += separator + createName(left_boundary, right_boundary);
         }
 
-        try {
-            Files.createDirectories(new File(path).toPath());
-        } catch (IOException e) {
-            //TODO failed to create directories for file
-            e.printStackTrace();
-        }
-
-        return path.concat(separator).concat(key);
+        return rootFolder.concat(path);
     }
 
     private static String createName(long left_boundary, long right_boundary) {

@@ -1,11 +1,12 @@
 package filestorage.impl;
 
+import filestorage.StorageException;
+import filestorage.impl.exception.FileLockedException;
+import filestorage.impl.exception.NotEnoughFreeSpaceException;
 import org.junit.Test;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
+import java.nio.file.FileAlreadyExistsException;
 
 import static org.junit.Assert.assertTrue;
 
@@ -14,30 +15,40 @@ public class FileStorageServiceImplTest {
     public static final String STORAGE_PATH = ".".concat(File.separator).concat("storage");
 
     @Test
-    public void testFileLock() throws Exception {
+    public void testFileLock() throws StorageException, IOException {
         final int maxDiskSpace = 2000000;
         final FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(maxDiskSpace, STORAGE_PATH);
         fileStorageService.startService();
 
         final String file_name = "testFileLock";
 
+        boolean condition = false;
+
         new Thread(new Runnable() {
             @Override
             public void run() {
+
                 try {
-                    fileStorageService.saveFile(file_name, new ByteArrayInputStream(new byte[]{}));
-                } catch (IOException e) {
+                    fileStorageService.saveFile(file_name, new ByteArrayInputStream(new byte[1000000]));
+                } catch (IOException | FileLockedException | NotEnoughFreeSpaceException e) {
                     e.printStackTrace();
+                } catch (StorageException e) {
                 }
+
             }
         }).start();
 
-        Thread.sleep(500);
-        fileStorageService.saveFile(file_name, new ByteArrayInputStream(new byte[]{}));
+        try {
+            fileStorageService.saveFile(file_name, new ByteArrayInputStream(new byte[]{}));
+        } catch (FileLockedException e) {
+            condition = true;
+        }
+
+        assertTrue(condition);
     }
 
     @Test
-    public void testSaveFiles() throws Exception {
+    public void testSaveFiles() throws Exception, StorageException {
         final int maxDiskSpace = 2000000;
         FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(maxDiskSpace, STORAGE_PATH);
         fileStorageService.startService();
@@ -56,7 +67,7 @@ public class FileStorageServiceImplTest {
     }
 
     @Test
-    public void testReadFile() throws IOException {
+    public void testReadFile() throws IOException, StorageException {
         final int maxDiskSpace = 2000000;
         FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(maxDiskSpace, STORAGE_PATH);
         fileStorageService.startService();
@@ -71,67 +82,85 @@ public class FileStorageServiceImplTest {
     }
 
     @Test
-    public void testSaveFileWithLiveTime() throws IOException, InterruptedException {
+    public void testSaveFileWithLiveTime() throws StorageException, InterruptedException, IOException {
+
+        boolean condition = false;
+
         final int maxDiskSpace = 2000000;
         final FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(maxDiskSpace, STORAGE_PATH);
         fileStorageService.startService();
 
-        final int liveTimeMillis = 2000;
+        final int lifeTimeMillis = 2000;
         final String filename = "fileWithLiveTime";
-        fileStorageService.saveFile(filename, new ByteArrayInputStream(new byte[]{}), liveTimeMillis);
+        fileStorageService.saveFile(filename, new ByteArrayInputStream(new byte[]{}), lifeTimeMillis);
 
-        Thread.sleep(liveTimeMillis + 100);
+        Thread.sleep(lifeTimeMillis + 500);
 
-        assertTrue(fileStorageService.readFile(filename) == null);
+        try {
+            fileStorageService.readFile(filename);
+        } catch (FileNotFoundException e) {
+            condition = true;
+        }
+
+        assertTrue(condition);
     }
 
     @Test
-    public void testDeleteFile() throws IOException {
+    public void testDeleteFile() throws StorageException, FileAlreadyExistsException {
+
+        boolean condition = false;
+
         final int maxDiskSpace = 2000000;
         FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(maxDiskSpace, STORAGE_PATH);
         fileStorageService.startService();
 
         String filename = "testDeleteFile";
         fileStorageService.saveFile(filename, new ByteArrayInputStream(new byte[]{}));
+
         fileStorageService.deleteFile(filename);
 
-        assertTrue(fileStorageService.readFile(filename) == null);
+        try {
+            fileStorageService.readFile(filename);
+        } catch (FileNotFoundException e) {
+            condition = true;
+        }
+
+        assertTrue(condition);
     }
 
     @Test
-    public void testStorageNotEnoughSpaceForCreateStorage() {
-        final String filename = "testStorageSize";
-        IOException ioException = null;
+    public void testStorageNotEnoughSpaceToCreateStorage() throws StorageException {
+        boolean condition = false;
         try {
             final int maxDiskSpace = 5;
             final FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(maxDiskSpace, STORAGE_PATH);
             fileStorageService.startService();
-            fileStorageService.saveFile(filename, new ByteArrayInputStream(new byte[]{}));
-        } catch (IOException e) {
-            ioException = e;
-            e.printStackTrace();
+        } catch (NotEnoughFreeSpaceException e) {
+            condition = true;
         }
-        assertTrue(ioException != null && ioException.getMessage().equals("Not enough free space in " + STORAGE_PATH));
+        assertTrue(condition);
     }
 
     @Test
-    public void testStorageNotEnoughSpaceForFileSave() {
+    public void testStorageNotEnoughSpaceForFileSave() throws StorageException, FileAlreadyExistsException {
         final String filename = "testStorageSize";
-        IOException ioException = null;
+        boolean condition = false;
         try {
             final int maxDiskSpace = 3000;
             final FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(maxDiskSpace, STORAGE_PATH);
             fileStorageService.startService();
             long fileSize = maxDiskSpace - fileStorageService.getWorkingDataSize() + 1000;
             fileStorageService.saveFile(filename, new ByteArrayInputStream(new byte[(int) fileSize]));
-        } catch (IOException e) {
-            ioException = e;
+        } catch (FileLockedException e) {
+            e.printStackTrace();
+        } catch (NotEnoughFreeSpaceException e) {
+            condition = true;
         }
-        assertTrue(ioException != null && ioException.getMessage().equals("Not enough free space in " + STORAGE_PATH));
+        assertTrue(condition);
     }
 
     @Test
-    public void testGetFreeStorageSpace() throws Exception {
+    public void testGetFreeStorageSpace() throws StorageException {
         FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(2000000, STORAGE_PATH);
         fileStorageService.startService();
         final long freeStorageSpace = fileStorageService.getFreeStorageSpace();

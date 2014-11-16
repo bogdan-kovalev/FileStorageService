@@ -21,7 +21,7 @@ public class StorageSpaceInspector implements Runnable {
         this.maxDiskSpace = maxDiskSpace;
         this.rootFolder = rootFolder;
 
-        calculateFreeSpace();
+        analyzeFreeSpace();
     }
 
     @Override
@@ -32,13 +32,12 @@ public class StorageSpaceInspector implements Runnable {
                 Thread.sleep(5 * MINUTE);
             } catch (InterruptedException e) {
                 run = false;
-                System.out.println("space inspector interrupted");
             }
-            calculateFreeSpace();
+            analyzeFreeSpace();
         }
     }
 
-    public void calculateFreeSpace() {
+    public void analyzeFreeSpace() {
         freeSpace = maxDiskSpace - FileUtils.sizeOfDirectory(new File(rootFolder));
     }
 
