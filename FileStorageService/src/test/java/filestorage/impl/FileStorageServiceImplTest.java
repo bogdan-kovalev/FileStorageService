@@ -14,26 +14,6 @@ public class FileStorageServiceImplTest {
     public static final String STORAGE_PATH = ".".concat(File.separator).concat("storage");
 
     @Test
-    public void testStartStorageService() throws Exception {
-        final int maxDiskSpace = 2000000;
-        FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(maxDiskSpace, STORAGE_PATH);
-        fileStorageService.startService();
-    }
-
-    @Test
-    public void testStopStorageService() throws Exception {
-        final int maxDiskSpace = 2000000;
-        FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(maxDiskSpace, STORAGE_PATH);
-        fileStorageService.startService();
-        Thread.sleep(2000);
-        fileStorageService.stopService();
-        Thread.sleep(2000);
-        fileStorageService.startService();
-        Thread.sleep(2000);
-    }
-
-
-    @Test
     public void testSaveFiles() throws Exception {
         final int maxDiskSpace = 2000000;
         FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(maxDiskSpace, STORAGE_PATH);
@@ -76,7 +56,6 @@ public class FileStorageServiceImplTest {
         final int liveTimeMillis = 2000;
         final String filename = "fileWithLiveTime";
         fileStorageService.saveFile(filename, new ByteArrayInputStream(new byte[]{}), liveTimeMillis);
-        fileStorageService.saveFile(filename + "2", new ByteArrayInputStream(new byte[]{}), liveTimeMillis + 30000);
 
         Thread.sleep(liveTimeMillis + 100);
 
@@ -107,6 +86,7 @@ public class FileStorageServiceImplTest {
             fileStorageService.saveFile(filename, new ByteArrayInputStream(new byte[]{}));
         } catch (IOException e) {
             ioException = e;
+            e.printStackTrace();
         }
         assertTrue(ioException != null && ioException.getMessage().equals("Not enough free space in " + STORAGE_PATH));
     }

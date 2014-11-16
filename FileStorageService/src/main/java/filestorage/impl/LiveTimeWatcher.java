@@ -53,7 +53,6 @@ public class LiveTimeWatcher implements Runnable {
                 if (System.currentTimeMillis() - creationTime.toMillis() > Long.valueOf(storageData.getProperty(path))) {
                     file.delete();
                     storageData.remove(path);
-                    System.out.println("deleted " + path);
                 }
             } catch (NoSuchFileException e) {
                 storageData.remove(path);
@@ -86,10 +85,8 @@ public class LiveTimeWatcher implements Runnable {
         while (run) {
             try {
                 checkFiles();
-                System.out.println("live time watcher check");
                 Thread.sleep(500);
             } catch (InterruptedException e) {
-                System.out.println("live time watcher interrupted");
                 run = false;
                 saveData();
             }

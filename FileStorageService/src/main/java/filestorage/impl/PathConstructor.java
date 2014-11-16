@@ -1,57 +1,48 @@
 package filestorage.impl;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
 
 import static java.io.File.separator;
 
 /**
+ * Maximum 2047 files in the lowest level folder.
+ *
  * @author Bogdan Kovalev.
  */
 public class PathConstructor {
 
-    private static final int FIRST_HASHCODE_WINDOW_LENGTH = Math.abs(Integer.MIN_VALUE / 32);
-    private static final int SECOND_HASHCODE_WINDOW_LENGTH = FIRST_HASHCODE_WINDOW_LENGTH / 32;
-    private static final int THIRD_HASHCODE_WINDOW_LENGTH = SECOND_HASHCODE_WINDOW_LENGTH / 64;
+    private static final List<Integer> dividers = new ArrayList<Integer>() {{
+        add(Math.abs(Integer.MIN_VALUE / 64));
+        add(get(0) / 128);
+        add(get(1) / 128);
+    }};
 
-    private long left_boundary;
-    private long right_boundary;
-
-
-    public String constructFilePathInStorage(String key, String rootFolder) {
+    public static String constructFilePathInStorage(String key, String rootFolder) {
         final int hashcode = key.hashCode();
 
-        left_boundary = Integer.MIN_VALUE;
-        right_boundary = Integer.MAX_VALUE;
+        String path = "";
 
-        String destination = find(FIRST_HASHCODE_WINDOW_LENGTH, hashcode);
-        if (destination.equals("")) throw new IllegalStateException("Hashcode out of range");
-        destination += separator.concat(find(SECOND_HASHCODE_WINDOW_LENGTH, hashcode));
-        destination += separator.concat(find(THIRD_HASHCODE_WINDOW_LENGTH, hashcode));
-
-        final String destinationPathInStorage = rootFolder.concat(separator).concat(destination);
-
-        new File(destinationPathInStorage).mkdirs();
-
-        final String filePath = destinationPathInStorage.concat(separator).concat(key);
-
-        return filePath;
-    }
-
-    private String find(int range, int hashcode) {
-        long right_temp_boundary = left_boundary + range;
-
-        while (right_temp_boundary < right_boundary + 2) {
-            if (hashcode >= left_boundary & hashcode < right_temp_boundary) {
-                right_boundary = right_temp_boundary;
-                return createName(left_boundary, right_temp_boundary);
-            }
-            left_boundary = right_temp_boundary;
-            right_temp_boundary += range;
+        for (int div : dividers) {
+            long left_boundary = hashcode - hashcode % div;
+            long right_boundary = left_boundary + div - 1;
+            path += separator + createName(left_boundary, right_boundary);
         }
-        return "";
+
+        try {
+            Files.createDirectories(new File(path).toPath());
+        } catch (IOException e) {
+            //TODO failed to create directories for file
+            e.printStackTrace();
+        }
+
+        return path.concat(separator).concat(key);
     }
 
-    private String createName(long left_boundary, long right_boundary) {
+    private static String createName(long left_boundary, long right_boundary) {
         return "[" + left_boundary + "_" + right_boundary + "]";
     }
 }

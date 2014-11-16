@@ -190,7 +190,7 @@ public class FileStorageServiceImpl implements FileStorageService {
     }
 
     private String getFilePath(String key) {
-        return new PathConstructor().constructFilePathInStorage(key, rootFolder);
+        return PathConstructor.constructFilePathInStorage(key, rootFolder);
     }
 
     private boolean createStorage() {
