@@ -183,7 +183,7 @@ public class FileStorageServiceImpl implements FileStorageService {
         if (!serviceIsStarted)
             throw new StorageServiceIsNotStartedError();
 
-        return lifeTimeWatcher.getDataFileSize();
+        return storageSpaceInspector.getDataFolderSize();
     }
 
     private void writeFile(Path filePath, ReadableByteChannel channel) throws NotEnoughFreeSpaceException, StorageServiceIsNotStartedError, StorageCorruptedException, IOException, FileLockedException {

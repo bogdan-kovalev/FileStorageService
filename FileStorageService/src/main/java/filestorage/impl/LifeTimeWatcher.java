@@ -15,7 +15,7 @@ import java.util.Properties;
  */
 public class LifeTimeWatcher implements Runnable {
 
-    public final static String DATA_FOLDER_NAME = "data";
+    public final static String DATA_FOLDER_NAME = "system";
     public final static String FILE_NAME = "storage.data";
 
     private final String storageRoot;
@@ -72,12 +72,11 @@ public class LifeTimeWatcher implements Runnable {
         }
 
         try (final FileOutputStream fileOutputStream = new FileOutputStream(String.valueOf(filePath))) {
-            final long sizeBefore = Files.size(filePath);
             storageData.store(fileOutputStream, null);
-            storageSpaceInspector.incrementUsedSpace(Files.size(filePath) - sizeBefore);
         } catch (IOException e) {
             System.out.println("Warning: Life time watcher store exception");
         }
+        storageSpaceInspector.dataFolderUpdated();
     }
 
     @Override
@@ -101,9 +100,9 @@ public class LifeTimeWatcher implements Runnable {
         }
     }
 
-    private synchronized boolean haveEnoughFreeSpaceToStore() {
+    private boolean haveEnoughFreeSpaceToStore() {
         long currentDataFileSize = new File(String.valueOf(filePath)).length();
-        return calculateDataOutSize() <
+        return calculateDataOutSize() <=
                 // free storage space with taking account to space that will freed after current data file deleting
                 storageSpaceInspector.getFreeSpace() + currentDataFileSize;
     }
