@@ -150,7 +150,7 @@ public class FileStorageServiceImpl implements FileStorageService {
             try {
                 final long length = Files.size(filePath);
                 Files.delete(filePath);
-                storageSpaceInspector.incrementFreeSpace(length);
+                storageSpaceInspector.decrementUsedSpace(length);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -169,11 +169,14 @@ public class FileStorageServiceImpl implements FileStorageService {
     }
 
     @Override
-    public void purge(double percents) throws StorageServiceIsNotStartedError {
+    public void purge(float percents) throws StorageServiceIsNotStartedError, InvalidPercentsValueException {
         if (!serviceIsStarted)
             throw new StorageServiceIsNotStartedError();
 
-        throw new IllegalStateException("Not implemented yet");
+        if (percents >= 0 & percents <= 1)
+            storageSpaceInspector.purge((long) (maxDiskSpace * percents));
+        else
+            throw new InvalidPercentsValueException();
     }
 
     public long getWorkingDataSize() throws StorageServiceIsNotStartedError {
@@ -199,7 +202,7 @@ public class FileStorageServiceImpl implements FileStorageService {
                     buffer.flip();
                     out.write(buffer);
 
-                    storageSpaceInspector.decrementFreeSpace(buffer.position());
+                    storageSpaceInspector.incrementUsedSpace(buffer.position());
 
                     buffer.clear();
                 }

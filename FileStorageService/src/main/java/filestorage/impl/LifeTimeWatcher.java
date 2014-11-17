@@ -7,7 +7,6 @@ import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
 import java.util.Properties;
 
@@ -45,8 +44,7 @@ public class LifeTimeWatcher implements Runnable {
         for (String key : storageData.stringPropertyNames()) {
             Path path = Paths.get(PathConstructor.findDestinationPath(key, storageRoot), key);
             try {
-                final BasicFileAttributes attributes = Files.readAttributes(path, BasicFileAttributes.class);
-                final FileTime creationTime = attributes.creationTime();
+                final FileTime creationTime = (FileTime) Files.getAttribute(path, "basic:creationTime");
 
                 if (System.currentTimeMillis() - creationTime.toMillis() > Long.valueOf(storageData.getProperty(key))) {
                     Files.delete(path);
@@ -74,7 +72,9 @@ public class LifeTimeWatcher implements Runnable {
         }
 
         try (final FileOutputStream fileOutputStream = new FileOutputStream(String.valueOf(filePath))) {
+            final long sizeBefore = Files.size(filePath);
             storageData.store(fileOutputStream, null);
+            storageSpaceInspector.incrementUsedSpace(Files.size(filePath) - sizeBefore);
         } catch (IOException e) {
             System.out.println("Warning: Life time watcher store exception");
         }

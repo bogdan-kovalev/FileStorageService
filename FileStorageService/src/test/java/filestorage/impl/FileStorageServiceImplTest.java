@@ -2,6 +2,7 @@ package filestorage.impl;
 
 import filestorage.StorageException;
 import filestorage.impl.exception.FileLockedException;
+import filestorage.impl.exception.InvalidPercentsValueException;
 import filestorage.impl.exception.NotEnoughFreeSpaceException;
 import org.junit.Test;
 
@@ -140,15 +141,31 @@ public class FileStorageServiceImplTest {
 
     @Test
     public void testGetFreeStorageSpace() throws StorageException {
-        FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(2000000, STORAGE_PATH);
+        final int maxDiskSpace = 2000000;
+        FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(maxDiskSpace, STORAGE_PATH);
         fileStorageService.startService();
         final long freeStorageSpace = fileStorageService.getFreeStorageSpace();
-        assertTrue(freeStorageSpace > 0 & freeStorageSpace < 2000000);
+        assertTrue(freeStorageSpace > 0 & freeStorageSpace < maxDiskSpace);
     }
 
     @Test
-    public void testPurge() throws Exception {
+    public void testPurge() throws StorageException, FileAlreadyExistsException, InterruptedException, InvalidPercentsValueException {
+        final int maxDiskSpace = 25000;
+        FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(maxDiskSpace, STORAGE_PATH);
+        fileStorageService.startService();
+        final String filename = "purgeFile";
+        int i = 0;
 
+        while (fileStorageService.getFreeStorageSpace() > maxDiskSpace * 0.1) {
+            final String key = filename + i++;
+            fileStorageService.saveFile(key, new ByteArrayInputStream(new byte[1000]));
+        }
+
+        final float percents = 1.0f;
+        fileStorageService.purge(percents);
+        final long freeSpaceNow = fileStorageService.getFreeStorageSpace();
+
+        assertTrue(freeSpaceNow >= maxDiskSpace * percents);
     }
 
 }
