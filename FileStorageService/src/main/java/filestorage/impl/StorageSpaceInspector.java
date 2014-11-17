@@ -1,7 +1,5 @@
 package filestorage.impl;
 
-import org.apache.commons.io.FileUtils;
-
 import java.io.File;
 
 /**
@@ -38,7 +36,30 @@ public class StorageSpaceInspector implements Runnable {
     }
 
     public void analyzeFreeSpace() {
-        freeSpace = maxDiskSpace - FileUtils.sizeOfDirectory(new File(rootFolder));
+        freeSpace = maxDiskSpace - calcSizeAndClearEmpties(new File(rootFolder));
+    }
+
+    public static long calcSizeAndClearEmpties(File directory) {
+        long size = 0L;
+        if (!directory.exists()) {
+            return size;
+        } else if (!directory.isDirectory()) {
+            return size;
+        } else {
+            File[] files = directory.listFiles();
+            for (int i = 0; i < files.length; ++i) {
+                File file = files[i];
+                if (file.isDirectory()) {
+                    size += calcSizeAndClearEmpties(file);
+                } else {
+                    size += file.length();
+                }
+            }
+            if (directory.listFiles().length == 0) {
+                directory.delete();
+            }
+            return size;
+        }
     }
 
     public long getFreeSpace() {

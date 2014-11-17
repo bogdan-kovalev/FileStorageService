@@ -50,7 +50,7 @@ public class LifeTimeWatcher implements Runnable {
 
                 if (System.currentTimeMillis() - creationTime.toMillis() > Long.valueOf(storageData.getProperty(key))) {
                     Files.delete(path);
-                    storageData.remove(path);
+                    storageData.remove(key);
                 }
             } catch (NoSuchFileException e) {
                 storageData.remove(path);
@@ -69,14 +69,14 @@ public class LifeTimeWatcher implements Runnable {
 
     private void saveData() {
         if (!haveEnoughFreeSpaceToStore()) {
-            //TODO warning
+            System.out.println("Warning: Life time watcher store exception, haven't enough free space");
             return;
         }
 
         try (final FileOutputStream fileOutputStream = new FileOutputStream(String.valueOf(filePath))) {
             storageData.store(fileOutputStream, null);
         } catch (IOException e) {
-            // TODO warning
+            System.out.println("Warning: Life time watcher store exception");
         }
     }
 

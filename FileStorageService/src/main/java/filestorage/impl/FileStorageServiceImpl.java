@@ -135,6 +135,8 @@ public class FileStorageServiceImpl implements FileStorageService {
             throw new StorageServiceIsNotStartedError();
 
         Path filePath = Paths.get(PathConstructor.findDestinationPath(key, rootFolder), key);
+
+
         return Channels.newInputStream(new FileInputStream(String.valueOf(filePath)).getChannel());
     }
 
@@ -181,7 +183,7 @@ public class FileStorageServiceImpl implements FileStorageService {
         return lifeTimeWatcher.getDataFileSize();
     }
 
-    private void writeFile(Path filePath, ReadableByteChannel channel) throws FileLockedException, NotEnoughFreeSpaceException, StorageServiceIsNotStartedError, StorageCorruptedException, IOException {
+    private void writeFile(Path filePath, ReadableByteChannel channel) throws NotEnoughFreeSpaceException, StorageServiceIsNotStartedError, StorageCorruptedException, IOException, FileLockedException {
         FileLock fileLock = null;
         try (final FileChannel out = new FileOutputStream(String.valueOf(filePath)).getChannel()) {
 
@@ -210,6 +212,8 @@ public class FileStorageServiceImpl implements FileStorageService {
             }
         } catch (FileNotFoundException e) {
             throw new StorageCorruptedException();
+        } catch (FileLockedException e) {
+            throw e;
         }
     }
 
