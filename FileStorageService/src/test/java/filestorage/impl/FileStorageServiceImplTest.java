@@ -128,7 +128,7 @@ public class FileStorageServiceImplTest {
         final FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(maxDiskSpace, STORAGE_PATH);
         try {
             fileStorageService.startService();
-            long fileSize = maxDiskSpace - fileStorageService.getWorkingDataSize() + 1000;
+            long fileSize = maxDiskSpace - fileStorageService.getSystemDataSize() + 1000;
             fileStorageService.saveFile(filename, new ByteArrayInputStream(new byte[(int) fileSize]));
         } catch (FileLockedException e) {
             e.printStackTrace();
@@ -166,11 +166,9 @@ public class FileStorageServiceImplTest {
         final long freeSpaceNow = fileStorageService.getFreeStorageSpace();
         System.out.println("free space now " + freeSpaceNow);
 
-        final long workingDataSize = fileStorageService.getWorkingDataSize();
-        System.out.println("working data size " + workingDataSize);
-        assertTrue(freeSpaceNow >= maxDiskSpace * percents - workingDataSize);
-
-        //TODO when data file exist free space is incorrect FIX
+        final long systemDataSize = fileStorageService.getSystemDataSize();
+        System.out.println("working data size " + systemDataSize);
+        assertTrue(freeSpaceNow >= maxDiskSpace * percents - systemDataSize);
     }
 
 }

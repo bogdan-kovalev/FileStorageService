@@ -23,7 +23,6 @@ public class StorageSpaceInspector implements Runnable {
     private boolean run;
 
     private long usedSpace;
-    private long dataFolderSize;
 
     private TreeSet<Path> purgeSet = new TreeSet<>(new Comparator() {
         @Override
@@ -46,9 +45,7 @@ public class StorageSpaceInspector implements Runnable {
         @Override
         public void accept(Path path) {
             final File file = new File(String.valueOf(path));
-            if (path.endsWith(Paths.get(LifeTimeWatcher.DATA_FOLDER_NAME))) {
-                dataFolderUpdated();
-            }
+            if (path.endsWith("system")) System.out.println(path);
             if (file.isFile())
                 usedSpace += file.length();
         }
@@ -141,23 +138,12 @@ public class StorageSpaceInspector implements Runnable {
         usedSpace -= bytes;
     }
 
-    public Consumer<Path> getFilesSizeConsumer() {
-        return filesSizeConsumer;
-    }
-
-    public Consumer<Path> getDeleteIfEmptyConsumer() {
-        return deleteIfEmptyConsumer;
-    }
-
-    public void dataFolderUpdated() {
-        dataFolderSize = 0;
-        File systemDir = new File(String.valueOf(Paths.get(rootFolder, LifeTimeWatcher.DATA_FOLDER_NAME)));
-        for (File sysfile : systemDir.listFiles()) {
-            dataFolderSize += sysfile.length();
+    public long getSystemFolderSize() {
+        long size = 0;
+        String systemFolderPath = rootFolder + File.separator + FileStorageServiceImpl.SYSTEM_FOLDER_NAME;
+        for (File file : new File(systemFolderPath).listFiles()) {
+            size += file.length();
         }
-    }
-
-    public long getDataFolderSize() {
-        return dataFolderSize;
+        return size;
     }
 }

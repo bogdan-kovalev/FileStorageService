@@ -17,6 +17,8 @@ import java.nio.file.Paths;
  */
 public class FileStorageServiceImpl implements FileStorageService {
 
+    public final static String SYSTEM_FOLDER_NAME = "system";
+
     private boolean serviceIsStarted = false;
 
     private final long maxDiskSpace;
@@ -179,11 +181,11 @@ public class FileStorageServiceImpl implements FileStorageService {
             throw new InvalidPercentsValueException();
     }
 
-    public long getWorkingDataSize() throws StorageServiceIsNotStartedError {
+    public long getSystemDataSize() throws StorageServiceIsNotStartedError {
         if (!serviceIsStarted)
             throw new StorageServiceIsNotStartedError();
 
-        return storageSpaceInspector.getDataFolderSize();
+        return storageSpaceInspector.getSystemFolderSize();
     }
 
     private void writeFile(Path filePath, ReadableByteChannel channel) throws NotEnoughFreeSpaceException, StorageServiceIsNotStartedError, StorageCorruptedException, IOException, FileLockedException {

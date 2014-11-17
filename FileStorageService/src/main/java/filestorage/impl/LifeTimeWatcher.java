@@ -15,7 +15,6 @@ import java.util.Properties;
  */
 public class LifeTimeWatcher implements Runnable {
 
-    public final static String DATA_FOLDER_NAME = "system";
     public final static String FILE_NAME = "storage.data";
 
     private final String storageRoot;
@@ -31,12 +30,12 @@ public class LifeTimeWatcher implements Runnable {
         this.storageRoot = storageRoot;
         storageSpaceInspector = inspector;
 
-        filePath = Paths.get(storageRoot, DATA_FOLDER_NAME, FILE_NAME);
+        filePath = Paths.get(storageRoot, FileStorageServiceImpl.SYSTEM_FOLDER_NAME, FILE_NAME);
 
         if (Files.exists(filePath))
             storageData.load(new FileInputStream(filePath.toString()));
         else
-            Files.createDirectories(Paths.get(storageRoot, DATA_FOLDER_NAME));
+            Files.createDirectories(Paths.get(storageRoot, FileStorageServiceImpl.SYSTEM_FOLDER_NAME));
     }
 
     public void checkFiles() {
@@ -71,12 +70,19 @@ public class LifeTimeWatcher implements Runnable {
             return;
         }
 
+
+        long sizeBefore = new File(String.valueOf(filePath)).length();
+
         try (final FileOutputStream fileOutputStream = new FileOutputStream(String.valueOf(filePath))) {
             storageData.store(fileOutputStream, null);
         } catch (IOException e) {
             System.out.println("Warning: Life time watcher store exception");
         }
-        storageSpaceInspector.dataFolderUpdated();
+
+        long currentSize = new File(String.valueOf(filePath)).length();
+
+        storageSpaceInspector.decrementUsedSpace(sizeBefore);
+        storageSpaceInspector.incrementUsedSpace(currentSize);
     }
 
     @Override
