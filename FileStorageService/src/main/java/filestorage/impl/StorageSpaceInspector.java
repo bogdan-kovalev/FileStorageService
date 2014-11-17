@@ -14,13 +14,13 @@ import java.util.stream.Stream;
 /**
  * @author Bogdan Kovalev.
  */
-public class StorageSpaceInspector implements Runnable {
+public class StorageSpaceInspector {
 
     public static final int MINUTE = 1000 * 60;
     private final long maxDiskSpace;
     private final String rootFolder;
 
-    private boolean run;
+    private boolean run = true;
 
     private long usedSpace;
 
@@ -45,7 +45,6 @@ public class StorageSpaceInspector implements Runnable {
         @Override
         public void accept(Path path) {
             final File file = new File(String.valueOf(path));
-            if (path.endsWith("system")) System.out.println(path);
             if (file.isFile())
                 usedSpace += file.length();
         }
@@ -110,19 +109,6 @@ public class StorageSpaceInspector implements Runnable {
             walk.forEach(consumer);
         } catch (IOException e) {
             e.printStackTrace();
-        }
-    }
-
-    @Override
-    public void run() {
-        while (run) {
-            try {
-                System.out.println("space inspector check");
-                Thread.sleep(5 * MINUTE);
-            } catch (InterruptedException e) {
-                run = false;
-            }
-            evaluateUsedSpace();
         }
     }
 

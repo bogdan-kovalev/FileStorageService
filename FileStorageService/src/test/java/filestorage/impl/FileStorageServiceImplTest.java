@@ -161,13 +161,12 @@ public class FileStorageServiceImplTest {
             fileStorageService.saveFile(key, new ByteArrayInputStream(new byte[100]));
         }
 
-        final float percents = 1.0f;
+        final float percents = 0.3f;
         fileStorageService.purge(percents);
-        final long freeSpaceNow = fileStorageService.getFreeStorageSpace();
-        System.out.println("free space now " + freeSpaceNow);
 
+        final long freeSpaceNow = fileStorageService.getFreeStorageSpace();
         final long systemDataSize = fileStorageService.getSystemDataSize();
-        System.out.println("working data size " + systemDataSize);
+
         assertTrue(freeSpaceNow >= maxDiskSpace * percents - systemDataSize);
     }
 

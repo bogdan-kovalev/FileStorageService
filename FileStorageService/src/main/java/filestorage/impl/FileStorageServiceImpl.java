@@ -26,7 +26,6 @@ public class FileStorageServiceImpl implements FileStorageService {
 
     private LifeTimeWatcher lifeTimeWatcher;
     private StorageSpaceInspector storageSpaceInspector;
-    private Thread storageSpaceInspectorThread;
     private Thread liveTimeWatcherThread;
 
     /**
@@ -47,8 +46,6 @@ public class FileStorageServiceImpl implements FileStorageService {
             return;
         }
         storageSpaceInspector = new StorageSpaceInspector(maxDiskSpace, rootFolder);
-        storageSpaceInspectorThread = new Thread(storageSpaceInspector);
-        storageSpaceInspectorThread.start();
 
         try {
             lifeTimeWatcher = new LifeTimeWatcher(rootFolder, storageSpaceInspector);
@@ -69,13 +66,8 @@ public class FileStorageServiceImpl implements FileStorageService {
             return;
         }
 
-        storageSpaceInspectorThread.interrupt();
         liveTimeWatcherThread.interrupt();
-
-        storageSpaceInspector = null;
         lifeTimeWatcher = null;
-
-        storageSpaceInspectorThread = null;
         liveTimeWatcherThread = null;
 
         serviceIsStarted = false;
