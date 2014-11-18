@@ -8,18 +8,9 @@ import java.io.InputStream;
  * @author Bogdan Kovalev
  */
 public interface FileStorageService {
-    /**
-     * @param key         unique id
-     * @param inputStream input stream
-     */
+
     void saveFile(String key, InputStream inputStream) throws IOException, StorageException;
 
-    /**
-     * @param key            unique id
-     * @param inputStream    input stream
-     * @param liveTimeMillis live time of the stored file
-     * @throws IOException
-     */
     void saveFile(String key, InputStream inputStream, long liveTimeMillis) throws IOException, StorageException;
 
     InputStream readFile(String key) throws FileNotFoundException, StorageException;

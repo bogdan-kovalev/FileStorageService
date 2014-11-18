@@ -16,7 +16,7 @@ import java.util.stream.Stream;
  */
 public class StorageSpaceInspector {
 
-    private final long maxDiskSpace;
+    private final long diskSpace;
     private final String STORAGE_ROOT;
 
     private long usedSpace;
@@ -50,7 +50,7 @@ public class StorageSpaceInspector {
     private Consumer<Path> prepareForPurge = new Consumer<Path>() {
         @Override
         public void accept(Path path) {
-            if (path.endsWith(FileStorageServiceImpl.SYSTEM_FILE_NAME)) return;
+            if (path.endsWith(BasicFileStorageService.SYSTEM_FILE_NAME)) return;
             final File file = new File(String.valueOf(path));
             if (file.isFile()) {
                 purgeSet.add(path);
@@ -58,8 +58,8 @@ public class StorageSpaceInspector {
         }
     };
 
-    public StorageSpaceInspector(long maxDiskSpace, String STORAGE_ROOT) {
-        this.maxDiskSpace = maxDiskSpace;
+    public StorageSpaceInspector(long diskSpace, String STORAGE_ROOT) {
+        this.diskSpace = diskSpace;
         this.STORAGE_ROOT = STORAGE_ROOT;
 
         evaluateUsedSpace();
@@ -82,6 +82,11 @@ public class StorageSpaceInspector {
         start.delete();
     }
 
+    /**
+     * This method releases free disk space by deleting old files.
+     *
+     * @param neededFreeSpace in bytes.
+     */
     public void purge(long neededFreeSpace) {
         if (getFreeSpace() >= neededFreeSpace) return;
 
@@ -99,6 +104,10 @@ public class StorageSpaceInspector {
         }
     }
 
+    /**
+     * This method will be accept this consumer for all file-paths in the storage.
+     * @param consumer
+     */
     private void performInStorage(Consumer<Path> consumer) {
         try (final Stream<Path> walk = Files.walk(Paths.get(STORAGE_ROOT))) {
             walk.forEach(consumer);
@@ -108,7 +117,7 @@ public class StorageSpaceInspector {
     }
 
     public long getFreeSpace() {
-        return maxDiskSpace - usedSpace;
+        return diskSpace - usedSpace;
     }
 
     public void incrementUsedSpace(long bytes) {
@@ -121,7 +130,7 @@ public class StorageSpaceInspector {
 
     public long getSystemFolderSize() {
         long size = 0;
-        String systemFolderPath = String.valueOf(Paths.get(STORAGE_ROOT, FileStorageServiceImpl.SYSTEM_FOLDER_NAME));
+        String systemFolderPath = String.valueOf(Paths.get(STORAGE_ROOT, BasicFileStorageService.SYSTEM_FOLDER_NAME));
 
         final File[] files = new File(systemFolderPath).listFiles();
         if (files != null)

@@ -14,9 +14,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 /**
+ * Basic realization of FileStorageService.
+ *
  * @author Bogdan Kovalev
  */
-public class FileStorageServiceImpl implements FileStorageService {
+public class BasicFileStorageService implements FileStorageService {
 
     public static final String SYSTEM_FOLDER_NAME = "system";
     public static final String SYSTEM_FILE_NAME = "system.data";
@@ -27,7 +29,7 @@ public class FileStorageServiceImpl implements FileStorageService {
 
     private boolean serviceIsStarted = false;
 
-    private final long maxDiskSpace;
+    private final long diskSpace;
     private final String dataFolderPath;
 
     private LifeTimeWatcher lifeTimeWatcher;
@@ -35,11 +37,13 @@ public class FileStorageServiceImpl implements FileStorageService {
     private Thread liveTimeWatcherThread;
 
     /**
-     * @param maxDiskSpace max disk space can be used (in bytes)
-     * @param storageRoot  root folder of file system
+     *
+     * @param diskSpace Maximum disk space that service can use for work
+     * @param storageRoot
+     * @throws UnableToCreateStorageException
      */
-    public FileStorageServiceImpl(long maxDiskSpace, String storageRoot) throws UnableToCreateStorageException {
-        this.maxDiskSpace = maxDiskSpace;
+    public BasicFileStorageService(long diskSpace, String storageRoot) throws UnableToCreateStorageException {
+        this.diskSpace = diskSpace;
         this.STORAGE_ROOT = storageRoot;
 
         this.dataFolderPath = String.valueOf(Paths.get(STORAGE_ROOT, DATA_FOLDER_NAME));
@@ -49,11 +53,17 @@ public class FileStorageServiceImpl implements FileStorageService {
         }
     }
 
+    /**
+     * This method starts all accessorial modules of the service, which run in separated threads.
+     * If service is not started, all public methods will be throw {@code StorageServiceIsNotStartedError}.
+     *
+     * @throws ServiceStartError
+     */
     public void startService() throws ServiceStartError {
         if (serviceIsStarted) {
             return;
         }
-        storageSpaceInspector = new StorageSpaceInspector(maxDiskSpace, STORAGE_ROOT);
+        storageSpaceInspector = new StorageSpaceInspector(diskSpace, STORAGE_ROOT);
 
         try {
             lifeTimeWatcher = new LifeTimeWatcher(STORAGE_ROOT, storageSpaceInspector);
@@ -66,6 +76,10 @@ public class FileStorageServiceImpl implements FileStorageService {
         serviceIsStarted = true;
     }
 
+    /**
+     * This method stops all accessorial modules.
+     * All public methods will be throw {@code StorageServiceIsNotStartedError}.
+     */
     public void stopService() {
         if (!serviceIsStarted) {
             return;
@@ -78,16 +92,6 @@ public class FileStorageServiceImpl implements FileStorageService {
         serviceIsStarted = false;
     }
 
-    /**
-     * This method provides possibility to saving data represented by {@code String} 'key' and {@code InputStream} 'inputStream'
-     * into disk drive storage.
-     * <p/>
-     * Algorithm will save 'inputStream' into file in storage by using of the hashcode calculated for String 'key'.
-     *
-     * @param key         unique id
-     * @param inputStream input stream
-     * @throws IOException
-     */
     @Override
     public void saveFile(String key, InputStream inputStream) throws StorageException, IOException {
         if (!serviceIsStarted)
@@ -104,26 +108,14 @@ public class FileStorageServiceImpl implements FileStorageService {
 
     }
 
-    /**
-     * This method provides possibility to saving data represented by {@code String} 'key' and {@code InputStream} 'inputStream'
-     * into disk drive storage.
-     * <p/>
-     * Algorithm will save 'inputStream' into file in storage by using of the hashcode calculated for String 'key'. File
-     * will be deleted after 'liveTimeMillis' milliseconds.
-     *
-     * @param key            unique id
-     * @param inputStream    input stream
-     * @param liveTimeMillis live time of the stored file
-     * @throws IOException
-     */
     @Override
-    public void saveFile(String key, InputStream inputStream, long liveTimeMillis) throws StorageException, IOException {
+    public void saveFile(String key, InputStream inputStream, long lifeTimeMillis) throws StorageException, IOException {
         if (!serviceIsStarted)
             throw new StorageServiceIsNotStartedError();
 
         saveFile(key, inputStream);
 
-        lifeTimeWatcher.addFile(key, liveTimeMillis);
+        lifeTimeWatcher.addFile(key, lifeTimeMillis);
     }
 
     @Override
@@ -150,9 +142,6 @@ public class FileStorageServiceImpl implements FileStorageService {
         }
     }
 
-    /**
-     * @return free storage space in bytes
-     */
     @Override
     public long getFreeStorageSpace() throws StorageServiceIsNotStartedError {
         if (!serviceIsStarted)
@@ -161,6 +150,12 @@ public class FileStorageServiceImpl implements FileStorageService {
         return storageSpaceInspector.getFreeSpace();
     }
 
+    /**
+     * This method releases free disk space by deleting old files.
+     * @param percents - The percentage of required free space from the total disk space.
+     * @throws StorageServiceIsNotStartedError
+     * @throws InvalidPercentsValueException
+     */
     @Override
     public void purge(float percents) throws StorageServiceIsNotStartedError, InvalidPercentsValueException {
         if (!serviceIsStarted)
@@ -169,7 +164,7 @@ public class FileStorageServiceImpl implements FileStorageService {
         if (percents < 0 || percents > 1)
             throw new InvalidPercentsValueException();
 
-        storageSpaceInspector.purge((long) (maxDiskSpace * percents));
+        storageSpaceInspector.purge((long) (diskSpace * percents));
     }
 
     public long getSystemFolderSize() throws StorageServiceIsNotStartedError {
@@ -218,6 +213,12 @@ public class FileStorageServiceImpl implements FileStorageService {
         }
     }
 
+    /**
+     * This method tries to lock current FileChannel and throw {@code FileLockedException} if it already locked.
+     * @param out
+     * @return
+     * @throws FileLockedException
+     */
     private FileLock tryToLock(FileChannel out) throws FileLockedException {
         FileLock lock = null;
         try {
@@ -231,6 +232,10 @@ public class FileStorageServiceImpl implements FileStorageService {
         return lock;
     }
 
+    /**
+     * Returns true if and only if storage root folder was created.
+     * @return
+     */
     private boolean createStorage() {
         final File root = new File(STORAGE_ROOT);
         return root.exists() || root.mkdir();

@@ -10,10 +10,11 @@ import java.nio.file.Paths;
 import java.nio.file.attribute.FileTime;
 import java.util.Properties;
 
-import static filestorage.impl.FileStorageServiceImpl.DATA_FOLDER_NAME;
-import static filestorage.impl.FileStorageServiceImpl.SYSTEM_FOLDER_NAME;
+import static filestorage.impl.BasicFileStorageService.DATA_FOLDER_NAME;
+import static filestorage.impl.BasicFileStorageService.SYSTEM_FOLDER_NAME;
 
 /**
+ * This class provides possibility to delete expired files.
  * @author Bogdan Kovalev.
  */
 public class LifeTimeWatcher implements Runnable {
@@ -32,7 +33,7 @@ public class LifeTimeWatcher implements Runnable {
         this.STORAGE_ROOT = STORAGE_ROOT;
         storageSpaceInspector = inspector;
 
-        systemFilePath = Paths.get(STORAGE_ROOT, SYSTEM_FOLDER_NAME, FileStorageServiceImpl.SYSTEM_FILE_NAME);
+        systemFilePath = Paths.get(STORAGE_ROOT, SYSTEM_FOLDER_NAME, BasicFileStorageService.SYSTEM_FILE_NAME);
 
         if (Files.exists(systemFilePath))
             systemData.load(new FileInputStream(String.valueOf(systemFilePath)));
@@ -42,6 +43,9 @@ public class LifeTimeWatcher implements Runnable {
         deleteExpiredFiles();
     }
 
+    /**
+     * This method check files listed in the system.data file and delete all expired files from the storage.
+     */
     public void deleteExpiredFiles() {
 
         for (String key : systemData.stringPropertyNames()) {
@@ -63,6 +67,13 @@ public class LifeTimeWatcher implements Runnable {
         storeSystemData();
     }
 
+    /**
+     * This method adds file with this key and life time to the system.data file.
+     *
+     * @param key
+     * @param liveTime
+     * @throws NotEnoughFreeSpaceException
+     */
     public void addFile(String key, long liveTime) throws NotEnoughFreeSpaceException {
         systemData.setProperty(key, String.valueOf(liveTime));
         storeSystemData();
@@ -101,14 +112,6 @@ public class LifeTimeWatcher implements Runnable {
         }
     }
 
-    public long getSystemDataFileSize() {
-        try {
-            return Files.size(systemFilePath);
-        } catch (IOException e) {
-            return calculateDataOutSize();
-        }
-    }
-
     private boolean haveEnoughFreeSpaceToStore() {
         long currentDataFileSize = new File(String.valueOf(systemFilePath)).length();
         return calculateDataOutSize() <=
@@ -116,6 +119,10 @@ public class LifeTimeWatcher implements Runnable {
                 storageSpaceInspector.getFreeSpace() + currentDataFileSize;
     }
 
+    /**
+     * Returns size of systemData object in bytes.
+     * @return
+     */
     private long calculateDataOutSize() {
         long outSize = 0;
         try (final ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {

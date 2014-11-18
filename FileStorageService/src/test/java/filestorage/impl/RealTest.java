@@ -33,7 +33,7 @@ public class RealTest {
 
     @Test
     public void multiThreadingTest() throws Exception {
-        final FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(MAX_DISK_SPACE, STORAGE_ROOT);
+        final BasicFileStorageService fileStorageService = new BasicFileStorageService(MAX_DISK_SPACE, STORAGE_ROOT);
         fileStorageService.startService();
         Thread.sleep(500);
 
@@ -108,7 +108,7 @@ public class RealTest {
                 try {
                     while (fileStorageService.serviceIsStarted() & fileStorageService.getFreeStorageSpace() > MAX_DISK_SPACE * 0.1) {
                         try {
-                            final int liveTimeMillis = random.nextInt(2000) + 500;
+                            final int liveTimeMillis = random.nextInt(400) + 100;
                             final String fileName = getRandomFileName();
                             System.out.println("saveFile( " + fileName + " , " + liveTimeMillis + " )");
                             fileStorageService.saveFile(fileName, getRandomData(), liveTimeMillis);
