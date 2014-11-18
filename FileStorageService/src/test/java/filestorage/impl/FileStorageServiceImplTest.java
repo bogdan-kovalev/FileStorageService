@@ -1,173 +1,216 @@
 package filestorage.impl;
 
-import filestorage.StorageException;
-import filestorage.impl.exception.FileLockedException;
-import filestorage.impl.exception.InvalidPercentsValueException;
-import filestorage.impl.exception.NotEnoughFreeSpaceException;
 import org.junit.Test;
 
-import java.io.*;
-import java.nio.file.FileAlreadyExistsException;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Random;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class FileStorageServiceImplTest {
 
-    public static final String STORAGE_PATH = ".".concat(File.separator).concat("storage");
+    private static final String STORAGE_PATH = "storage";
+    private static final int MAX_DISK_SPACE = 10240;
+    private static Random random = new Random();
 
-    @Test
-    public void testSaveFiles() throws StorageException, IOException {
-        final int maxDiskSpace = 2000000;
-        FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(maxDiskSpace, STORAGE_PATH);
-        fileStorageService.startService();
-
-        String file1_name = "file1_testSaveFiles";
-        String file2_name = "file2_testSaveFiles";
-        String file3_name = "file3_testSaveFiles";
-
-        fileStorageService.saveFile(file1_name, new ByteArrayInputStream(new byte[]{}));
-        fileStorageService.saveFile(file2_name, new ByteArrayInputStream(new byte[]{}));
-        fileStorageService.saveFile(file3_name, new ByteArrayInputStream(new byte[]{}));
-
-        try (final InputStream inputStream = fileStorageService.readFile(file1_name);
-             final InputStream inputStream1 = fileStorageService.readFile(file2_name);
-             final InputStream inputStream2 = fileStorageService.readFile(file3_name)) {
-
-            assertTrue(inputStream != null);
-            assertTrue(inputStream1 != null);
-            assertTrue(inputStream2 != null);
+    private static String getRandomFileName() {
+        int nameLength = random.nextInt(10) + 5;
+        StringBuilder fileName = new StringBuilder();
+        while (nameLength-- > 0) {
+            final char randomChar = (char) (random.nextInt('z' - 'a') + 'a');
+            fileName.append(randomChar);
         }
+        return fileName.toString();
+    }
 
-        fileStorageService.deleteFile(file1_name);
-        fileStorageService.deleteFile(file2_name);
-        fileStorageService.deleteFile(file3_name);
+    private static ByteArrayInputStream getRandomData() {
+        return new ByteArrayInputStream(new byte[random.nextInt(400) + 100]);
     }
 
     @Test
-    public void testReadFile() throws IOException, StorageException {
-        final int maxDiskSpace = 2000000;
-        FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(maxDiskSpace, STORAGE_PATH);
+    public void testStartService() throws Exception {
+        FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(MAX_DISK_SPACE, STORAGE_PATH);
+
         fileStorageService.startService();
 
-        String filename = "testReadFile";
-        final byte testByte = 77;
+        assertTrue(fileStorageService.serviceIsStarted());
+    }
+
+    @Test
+    public void testStopService() throws Exception {
+        FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(MAX_DISK_SPACE, STORAGE_PATH);
+
+        fileStorageService.startService();
+        fileStorageService.stopService();
+
+        assertTrue(!fileStorageService.serviceIsStarted());
+    }
+
+    @Test
+    public void testSaveFile() throws Exception {
+        final FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(MAX_DISK_SPACE, STORAGE_PATH);
+        fileStorageService.startService();
+
+        final String filename = getRandomFileName();
+
+        fileStorageService.saveFile(filename, getRandomData());
+
+        try (final InputStream inputStream = fileStorageService.readFile(filename)) {
+            assertTrue(String.valueOf(inputStream), inputStream != null);
+        } catch (FileNotFoundException e) {
+            assertTrue(e.getMessage(), false);
+        }
+    }
+
+    @Test
+    public void testExpiredFileDeleted() throws Exception {
+        final FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(MAX_DISK_SPACE, STORAGE_PATH);
+        fileStorageService.startService();
+
+        final String filename = getRandomFileName();
+        final long lifeTime = 1000;
+
+        fileStorageService.saveFile(filename, getRandomData(), lifeTime);
+
+        Thread.sleep(lifeTime + LifeTimeWatcher.SLEEP_TIME * 2);
+
+        try (final InputStream inputStream = fileStorageService.readFile(filename)) {
+            assertFalse("File still exist", inputStream != null);
+        } catch (FileNotFoundException e) {
+            assertTrue(true);
+        }
+    }
+
+    @Test
+    public void testReadFile() throws Exception {
+        final FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(MAX_DISK_SPACE, STORAGE_PATH);
+        fileStorageService.startService();
+
+        final String filename = getRandomFileName();
+        final byte testByte = 4;
         fileStorageService.saveFile(filename, new ByteArrayInputStream(new byte[]{testByte}));
 
-        try (final InputStream file = fileStorageService.readFile(filename)) {
-            assertTrue(file.read() == testByte);
-        }
-
-        fileStorageService.deleteFile(filename);
-    }
-
-    @Test
-    public void testSaveFileWithLiveTime() throws StorageException, InterruptedException, IOException {
-
-        boolean condition = false;
-
-        final int maxDiskSpace = 2000000;
-        final FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(maxDiskSpace, STORAGE_PATH);
-        fileStorageService.startService();
-
-        final int lifeTimeMillis = 2000;
-        final String filename = "fileWithLiveTime";
-        fileStorageService.saveFile(filename, new ByteArrayInputStream(new byte[]{}), lifeTimeMillis);
-
-        Thread.sleep(lifeTimeMillis + 500);
-
         try (final InputStream inputStream = fileStorageService.readFile(filename)) {
+            final int actual = inputStream.read();
+            assertTrue("value expected: " + testByte + ", value read: " + actual, actual == testByte);
         } catch (FileNotFoundException e) {
-            condition = true;
+            assertTrue(false);
         }
-
-        assertTrue(condition);
     }
 
     @Test
-    public void testDeleteFile() throws StorageException, FileAlreadyExistsException {
-
-        boolean condition = false;
-
-        final int maxDiskSpace = 2000000;
-        FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(maxDiskSpace, STORAGE_PATH);
+    public void testDeleteFile() throws Exception {
+        final FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(MAX_DISK_SPACE, STORAGE_PATH);
         fileStorageService.startService();
 
-        String filename = "testDeleteFile";
-        fileStorageService.saveFile(filename, new ByteArrayInputStream(new byte[]{}));
+        final String filename = getRandomFileName();
 
+        fileStorageService.saveFile(filename, new ByteArrayInputStream(new byte[random.nextInt(500)]));
         fileStorageService.deleteFile(filename);
 
         try (final InputStream inputStream = fileStorageService.readFile(filename)) {
+            assertFalse("File still exist", inputStream != null);
         } catch (FileNotFoundException e) {
-            condition = true;
-        } catch (IOException e) {
-            e.printStackTrace();
+            assertTrue(true);
         }
-
-        assertTrue(condition);
     }
 
     @Test
-    public void testStorageNotEnoughSpaceToCreateStorage() throws StorageException {
-        boolean condition = false;
-        try {
-            final int maxDiskSpace = 5;
-            final FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(maxDiskSpace, STORAGE_PATH);
-            fileStorageService.startService();
-        } catch (NotEnoughFreeSpaceException e) {
-            condition = true;
-        }
-        assertTrue(condition);
-    }
-
-    @Test
-    public void testStorageNotEnoughSpaceForFileSave() throws StorageException, FileAlreadyExistsException {
-        final String filename = "testStorageSize";
-        boolean condition = false;
-        final int maxDiskSpace = 3000;
-        final FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(maxDiskSpace, STORAGE_PATH);
-        try {
-            fileStorageService.startService();
-            long fileSize = maxDiskSpace - fileStorageService.getSystemDataSize() + 1000;
-            fileStorageService.saveFile(filename, new ByteArrayInputStream(new byte[(int) fileSize]));
-        } catch (FileLockedException e) {
-            e.printStackTrace();
-        } catch (NotEnoughFreeSpaceException e) {
-            condition = true;
-        }
-        assertTrue(condition);
-        fileStorageService.deleteFile(filename);
-    }
-
-    @Test
-    public void testGetFreeStorageSpace() throws StorageException {
-        final int maxDiskSpace = 2000000;
-        FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(maxDiskSpace, STORAGE_PATH);
+    public void testGetFreeStorageSpace() throws Exception {
+        final FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(MAX_DISK_SPACE, STORAGE_PATH);
         fileStorageService.startService();
-        final long freeStorageSpace = fileStorageService.getFreeStorageSpace();
-        assertTrue(freeStorageSpace > 0 & freeStorageSpace < maxDiskSpace);
+
+        final long freeSpaceBefore = fileStorageService.getFreeStorageSpace();
+
+        final String fileName1 = getRandomFileName();
+        fileStorageService.saveFile(fileName1, getRandomData());
+        final String fileName2 = getRandomFileName();
+        fileStorageService.saveFile(fileName2, getRandomData());
+        final String fileName3 = getRandomFileName();
+        fileStorageService.saveFile(fileName3, getRandomData());
+
+        long total = 0;
+        long deleted;
+
+        try (InputStream inputStream1 = fileStorageService.readFile(fileName1);
+             InputStream inputStream2 = fileStorageService.readFile(fileName2);
+             InputStream inputStream3 = fileStorageService.readFile(fileName3)) {
+            total += inputStream1.available();
+            total += deleted = inputStream2.available();
+            total += inputStream3.available();
+        }
+
+        fileStorageService.deleteFile(fileName2);
+
+        total -= deleted;
+
+        final long expected = freeSpaceBefore - total;
+        final long actual = fileStorageService.getFreeStorageSpace();
+
+        assertTrue("Free space expected: " + expected + ", actual: " + actual, actual == expected);
     }
 
     @Test
-    public void testPurge() throws StorageException, FileAlreadyExistsException, InterruptedException, InvalidPercentsValueException {
-        final int maxDiskSpace = 25000;
-        FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(maxDiskSpace, STORAGE_PATH);
+    public void testPurge() throws Exception {
+        final FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(MAX_DISK_SPACE, STORAGE_PATH);
         fileStorageService.startService();
-        final String filename = "purgeFile";
-        int i = 0;
 
-        while (fileStorageService.getFreeStorageSpace() > maxDiskSpace * 0.1) {
-            final String key = filename + i++;
-            fileStorageService.saveFile(key, new ByteArrayInputStream(new byte[100]));
+        while (fileStorageService.getFreeStorageSpace() > MAX_DISK_SPACE * 0.1) {
+            final String fileName = getRandomFileName();
+            fileStorageService.saveFile(fileName, getRandomData());
         }
 
-        final float percents = 0.3f;
+        final float percents = 0.5f;
         fileStorageService.purge(percents);
 
-        final long freeSpaceNow = fileStorageService.getFreeStorageSpace();
-        final long systemDataSize = fileStorageService.getSystemDataSize();
+        final long actual = fileStorageService.getFreeStorageSpace();
+        final long expected = (long) (MAX_DISK_SPACE * percents - fileStorageService.getSystemFolderSize());
 
-        assertTrue(freeSpaceNow >= maxDiskSpace * percents - systemDataSize);
+        assertTrue("Free space expected: " + expected + ", actual: " + actual, actual >= expected);
     }
 
+    @Test
+    public void testGetSystemFolderSize() throws Exception {
+        final FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(MAX_DISK_SPACE, STORAGE_PATH);
+        fileStorageService.startService();
+
+        fileStorageService.saveFile(getRandomFileName(), getRandomData(), 40000);
+        fileStorageService.saveFile(getRandomFileName(), getRandomData(), 40000);
+        fileStorageService.saveFile(getRandomFileName(), getRandomData(), 40000);
+
+        final Path systemFolderPath = Paths.get(STORAGE_PATH, FileStorageServiceImpl.SYSTEM_FOLDER_NAME);
+        final File systemFolder = new File(String.valueOf(systemFolderPath));
+        final File[] files = systemFolder.listFiles();
+
+        long expected = 0;
+        if (files != null)
+            for (File file : files) {
+                expected += file.length();
+            }
+
+        final long actual = fileStorageService.getSystemFolderSize();
+
+        assertTrue("Expected: " + expected + ", actual: " + actual, actual == expected);
+    }
+
+    @Test
+    public void testClearEmptyDirectories() throws Exception {
+        final FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(MAX_DISK_SPACE, STORAGE_PATH);
+        fileStorageService.startService();
+
+        final String fileName = getRandomFileName();
+        fileStorageService.saveFile(fileName, getRandomData());
+        fileStorageService.deleteFile(fileName);
+
+        fileStorageService.clearEmptyDirectories();
+
+        boolean condition = true;
+
+    }
 }

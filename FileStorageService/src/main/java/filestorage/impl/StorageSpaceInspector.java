@@ -16,11 +16,8 @@ import java.util.stream.Stream;
  */
 public class StorageSpaceInspector {
 
-    public static final int MINUTE = 1000 * 60;
     private final long maxDiskSpace;
-    private final String rootFolder;
-
-    private boolean run = true;
+    private final String STORAGE_ROOT;
 
     private long usedSpace;
 
@@ -41,7 +38,7 @@ public class StorageSpaceInspector {
         }
     });
 
-    private Consumer<Path> filesSizeConsumer = new Consumer<Path>() {
+    private Consumer<Path> incrementUsedSpace = new Consumer<Path>() {
         @Override
         public void accept(Path path) {
             final File file = new File(String.valueOf(path));
@@ -50,20 +47,10 @@ public class StorageSpaceInspector {
         }
     };
 
-    private Consumer<Path> deleteIfEmptyConsumer = new Consumer<Path>() {
+    private Consumer<Path> prepareForPurge = new Consumer<Path>() {
         @Override
         public void accept(Path path) {
-            final File directory = new File(String.valueOf(path));
-            if (directory.listFiles() != null && directory.listFiles().length == 0) {
-                directory.delete();
-            }
-        }
-    };
-
-    private Consumer<Path> prepareForPurgeConsumer = new Consumer<Path>() {
-        @Override
-        public void accept(Path path) {
-            if (path.endsWith(LifeTimeWatcher.FILE_NAME)) return;
+            if (path.endsWith(FileStorageServiceImpl.SYSTEM_FILE_NAME)) return;
             final File file = new File(String.valueOf(path));
             if (file.isFile()) {
                 purgeSet.add(path);
@@ -71,27 +58,35 @@ public class StorageSpaceInspector {
         }
     };
 
-    public StorageSpaceInspector(long maxDiskSpace, String rootFolder) {
+    public StorageSpaceInspector(long maxDiskSpace, String STORAGE_ROOT) {
         this.maxDiskSpace = maxDiskSpace;
-        this.rootFolder = rootFolder;
+        this.STORAGE_ROOT = STORAGE_ROOT;
 
         evaluateUsedSpace();
     }
 
     private void evaluateUsedSpace() {
         usedSpace = 0;
-        performInStorage(filesSizeConsumer);
+        performInStorage(incrementUsedSpace);
     }
 
-    public void clearEmptyDirectories() {
-        performInStorage(deleteIfEmptyConsumer);
+    public void clearEmptyDirectories(File start) {
+        if (!start.isDirectory()) return;
+
+        for (File file : start.listFiles()) {
+            if (file.isFile()) return;
+
+            if (file.isDirectory())
+                clearEmptyDirectories(file);
+        }
+        start.delete();
     }
 
     public void purge(long neededFreeSpace) {
         if (getFreeSpace() >= neededFreeSpace) return;
 
         purgeSet.clear();
-        performInStorage(prepareForPurgeConsumer);
+        performInStorage(prepareForPurge);
 
         while (!purgeSet.isEmpty() && getFreeSpace() < neededFreeSpace) {
             final Path oldestFile = purgeSet.pollFirst();
@@ -105,7 +100,7 @@ public class StorageSpaceInspector {
     }
 
     private void performInStorage(Consumer<Path> consumer) {
-        try (final Stream<Path> walk = Files.walk(Paths.get(rootFolder))) {
+        try (final Stream<Path> walk = Files.walk(Paths.get(STORAGE_ROOT))) {
             walk.forEach(consumer);
         } catch (IOException e) {
             e.printStackTrace();
@@ -126,10 +121,13 @@ public class StorageSpaceInspector {
 
     public long getSystemFolderSize() {
         long size = 0;
-        String systemFolderPath = rootFolder + File.separator + FileStorageServiceImpl.SYSTEM_FOLDER_NAME;
-        for (File file : new File(systemFolderPath).listFiles()) {
-            size += file.length();
-        }
+        String systemFolderPath = String.valueOf(Paths.get(STORAGE_ROOT, FileStorageServiceImpl.SYSTEM_FOLDER_NAME));
+
+        final File[] files = new File(systemFolderPath).listFiles();
+        if (files != null)
+            for (File file : files) {
+                size += file.length();
+            }
         return size;
     }
 }

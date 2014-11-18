@@ -3,5 +3,5 @@ package filestorage;
 /**
  * @author Bogdan Kovalev
  */
-public class StorageException extends Throwable {
+public class StorageException extends Exception {
 }

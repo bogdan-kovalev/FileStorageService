@@ -18,7 +18,7 @@ public class PathConstructor {
         add(get(1) / 128);
     }};
 
-    public static String findDestinationPath(String key, String rootFolder) {
+    public static String findDestinationPath(String key, String startFolder) {
         final int hashcode = key.hashCode();
 
         String path = "";
@@ -29,7 +29,7 @@ public class PathConstructor {
             path += separator + createName(left_boundary, right_boundary);
         }
 
-        return rootFolder.concat(path);
+        return startFolder.concat(path);
     }
 
     private static String createName(long left_boundary, long right_boundary) {

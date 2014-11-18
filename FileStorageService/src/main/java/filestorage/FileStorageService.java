@@ -1,7 +1,5 @@
 package filestorage;
 
-import filestorage.impl.exception.InvalidPercentsValueException;
-
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,5 +28,5 @@ public interface FileStorageService {
 
     long getFreeStorageSpace() throws StorageException;
 
-    void purge(float percents) throws StorageException, InvalidPercentsValueException;
+    void purge(float percents) throws StorageException;
 }

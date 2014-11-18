@@ -5,5 +5,5 @@ import filestorage.StorageException;
 /**
  * @author Bogdan Kovalev
  */
-public class LifeTimeWatcherStartError extends StorageException {
+public class ServiceStartError extends StorageException {
 }

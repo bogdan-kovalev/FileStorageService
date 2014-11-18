@@ -2,6 +2,7 @@ package filestorage.impl;
 
 
 import filestorage.FileStorageService;
+import filestorage.StorageException;
 import filestorage.impl.exception.*;
 
 import java.io.*;
@@ -17,12 +18,17 @@ import java.nio.file.Paths;
  */
 public class FileStorageServiceImpl implements FileStorageService {
 
-    public final static String SYSTEM_FOLDER_NAME = "system";
+    public static final String SYSTEM_FOLDER_NAME = "system";
+    public static final String SYSTEM_FILE_NAME = "system.data";
+    public static final String DATA_FOLDER_NAME = "data";
+
+    private static final int BUFFER_SIZE = 1024;
+    private final String STORAGE_ROOT;
 
     private boolean serviceIsStarted = false;
 
     private final long maxDiskSpace;
-    private final String rootFolder;
+    private final String dataFolderPath;
 
     private LifeTimeWatcher lifeTimeWatcher;
     private StorageSpaceInspector storageSpaceInspector;
@@ -30,30 +36,29 @@ public class FileStorageServiceImpl implements FileStorageService {
 
     /**
      * @param maxDiskSpace max disk space can be used (in bytes)
-     * @param rootFolder   root folder of file system
+     * @param storageRoot  root folder of file system
      */
-    public FileStorageServiceImpl(long maxDiskSpace, String rootFolder) throws UnableToCreateStorageException {
+    public FileStorageServiceImpl(long maxDiskSpace, String storageRoot) throws UnableToCreateStorageException {
         this.maxDiskSpace = maxDiskSpace;
-        this.rootFolder = rootFolder;
+        this.STORAGE_ROOT = storageRoot;
+
+        this.dataFolderPath = String.valueOf(Paths.get(STORAGE_ROOT, DATA_FOLDER_NAME));
 
         if (!createStorage()) {
             throw new UnableToCreateStorageException();
         }
     }
 
-    public void startService() throws NotEnoughFreeSpaceException, LifeTimeWatcherStartError {
+    public void startService() throws ServiceStartError {
         if (serviceIsStarted) {
             return;
         }
-        storageSpaceInspector = new StorageSpaceInspector(maxDiskSpace, rootFolder);
+        storageSpaceInspector = new StorageSpaceInspector(maxDiskSpace, STORAGE_ROOT);
 
         try {
-            lifeTimeWatcher = new LifeTimeWatcher(rootFolder, storageSpaceInspector);
+            lifeTimeWatcher = new LifeTimeWatcher(STORAGE_ROOT, storageSpaceInspector);
         } catch (IOException e) {
-            throw new LifeTimeWatcherStartError();
-        }
-        if (lifeTimeWatcher.getDataFileSize() > storageSpaceInspector.getFreeSpace()) {
-            throw new NotEnoughFreeSpaceException();
+            throw new ServiceStartError();
         }
 
         liveTimeWatcherThread = new Thread(lifeTimeWatcher);
@@ -84,21 +89,19 @@ public class FileStorageServiceImpl implements FileStorageService {
      * @throws IOException
      */
     @Override
-    public void saveFile(String key, InputStream inputStream) throws FileLockedException, NotEnoughFreeSpaceException, StorageServiceIsNotStartedError, StorageCorruptedException, FileAlreadyExistsException {
+    public void saveFile(String key, InputStream inputStream) throws StorageException, IOException {
         if (!serviceIsStarted)
             throw new StorageServiceIsNotStartedError();
 
-        final String destinationPath = PathConstructor.findDestinationPath(key, rootFolder);
+        final String destinationPath = PathConstructor.findDestinationPath(key, dataFolderPath);
+
         Path filePath = Paths.get(destinationPath, key);
         if (Files.exists(filePath))
             throw new FileAlreadyExistsException(key);
 
-        try {
-            Files.createDirectories(Paths.get(destinationPath));
-            writeFile(filePath, Channels.newChannel(inputStream));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        Files.createDirectories(Paths.get(destinationPath));
+        writeFile(filePath, Channels.newChannel(inputStream));
+
     }
 
     /**
@@ -114,7 +117,7 @@ public class FileStorageServiceImpl implements FileStorageService {
      * @throws IOException
      */
     @Override
-    public void saveFile(String key, InputStream inputStream, long liveTimeMillis) throws FileLockedException, NotEnoughFreeSpaceException, StorageServiceIsNotStartedError, IOException, StorageCorruptedException {
+    public void saveFile(String key, InputStream inputStream, long liveTimeMillis) throws StorageException, IOException {
         if (!serviceIsStarted)
             throw new StorageServiceIsNotStartedError();
 
@@ -128,26 +131,22 @@ public class FileStorageServiceImpl implements FileStorageService {
         if (!serviceIsStarted)
             throw new StorageServiceIsNotStartedError();
 
-        Path filePath = Paths.get(PathConstructor.findDestinationPath(key, rootFolder), key);
+        Path filePath = Paths.get(PathConstructor.findDestinationPath(key, dataFolderPath), key);
 
-
-        return Channels.newInputStream(new FileInputStream(String.valueOf(filePath)).getChannel());
+        return new BufferedInputStream(new FileInputStream(String.valueOf(filePath)));
     }
 
     @Override
-    public void deleteFile(String key) throws StorageServiceIsNotStartedError {
+    public void deleteFile(String key) throws StorageServiceIsNotStartedError, IOException {
         if (!serviceIsStarted)
             throw new StorageServiceIsNotStartedError();
 
-        Path filePath = Paths.get(PathConstructor.findDestinationPath(key, rootFolder), key);
+        Path filePath = Paths.get(PathConstructor.findDestinationPath(key, dataFolderPath), key);
+
         if (Files.exists(filePath)) {
-            try {
-                final long length = Files.size(filePath);
-                Files.delete(filePath);
-                storageSpaceInspector.decrementUsedSpace(length);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            final long length = Files.size(filePath);
+            Files.delete(filePath);
+            storageSpaceInspector.decrementUsedSpace(length);
         }
     }
 
@@ -167,30 +166,38 @@ public class FileStorageServiceImpl implements FileStorageService {
         if (!serviceIsStarted)
             throw new StorageServiceIsNotStartedError();
 
-        if (percents >= 0 & percents <= 1)
-            storageSpaceInspector.purge((long) (maxDiskSpace * percents));
-        else
+        if (percents < 0 || percents > 1)
             throw new InvalidPercentsValueException();
+
+        storageSpaceInspector.purge((long) (maxDiskSpace * percents));
     }
 
-    public long getSystemDataSize() throws StorageServiceIsNotStartedError {
+    public long getSystemFolderSize() throws StorageServiceIsNotStartedError {
         if (!serviceIsStarted)
             throw new StorageServiceIsNotStartedError();
 
         return storageSpaceInspector.getSystemFolderSize();
     }
 
-    private void writeFile(Path filePath, ReadableByteChannel channel) throws NotEnoughFreeSpaceException, StorageServiceIsNotStartedError, StorageCorruptedException, IOException, FileLockedException {
+    public void clearEmptyDirectories() {
+        storageSpaceInspector.clearEmptyDirectories(new File(dataFolderPath));
+    }
+
+    public boolean serviceIsStarted() {
+        return serviceIsStarted;
+    }
+
+    private void writeFile(Path filePath, ReadableByteChannel channel) throws IOException, StorageException {
         FileLock fileLock = null;
         try (final FileChannel out = new FileOutputStream(String.valueOf(filePath)).getChannel()) {
 
             try {
                 fileLock = tryToLock(out);
 
-                final ByteBuffer buffer = ByteBuffer.allocate(1024);
+                final ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
 
                 while (channel.read(buffer) != -1) {
-                    if (getFreeStorageSpace() < 1024) {
+                    if (getFreeStorageSpace() < BUFFER_SIZE) {
                         throw new NotEnoughFreeSpaceException();
                     }
                     buffer.flip();
@@ -200,17 +207,14 @@ public class FileStorageServiceImpl implements FileStorageService {
 
                     buffer.clear();
                 }
-            } catch (NotEnoughFreeSpaceException e) {
-                throw e;
             } finally {
                 if (fileLock != null) {
                     fileLock.release();
                 }
             }
         } catch (FileNotFoundException e) {
+            // arises when destination folders hierarchy corrupted
             throw new StorageCorruptedException();
-        } catch (FileLockedException e) {
-            throw e;
         }
     }
 
@@ -228,7 +232,7 @@ public class FileStorageServiceImpl implements FileStorageService {
     }
 
     private boolean createStorage() {
-        final File root = new File(rootFolder);
+        final File root = new File(STORAGE_ROOT);
         return root.exists() || root.mkdir();
     }
 }
