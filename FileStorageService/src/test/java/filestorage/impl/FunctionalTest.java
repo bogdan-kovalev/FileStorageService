@@ -2,10 +2,7 @@ package filestorage.impl;
 
 import org.junit.Test;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.InputStream;
+import java.io.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayDeque;
@@ -16,14 +13,14 @@ import static filestorage.impl.FileStorageServiceImpl.DATA_FOLDER_NAME;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-public class FileStorageServiceImplTest {
+public class FunctionalTest {
 
     private static final String STORAGE_ROOT = "storage";
     private static final int MAX_DISK_SPACE = 10240;
     private static Random random = new Random();
 
     private static String getRandomFileName() {
-        int nameLength = random.nextInt(10) + 5;
+        int nameLength = random.nextInt(5) + 10;
         StringBuilder fileName = new StringBuilder();
         while (nameLength-- > 0) {
             final char randomChar = (char) (random.nextInt('z' - 'a') + 'a');
