@@ -8,14 +8,17 @@ import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Random;
 
+import static filestorage.impl.FileStorageServiceImpl.DATA_FOLDER_NAME;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class FileStorageServiceImplTest {
 
-    private static final String STORAGE_PATH = "storage";
+    private static final String STORAGE_ROOT = "storage";
     private static final int MAX_DISK_SPACE = 10240;
     private static Random random = new Random();
 
@@ -35,7 +38,7 @@ public class FileStorageServiceImplTest {
 
     @Test
     public void testStartService() throws Exception {
-        FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(MAX_DISK_SPACE, STORAGE_PATH);
+        FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(MAX_DISK_SPACE, STORAGE_ROOT);
 
         fileStorageService.startService();
 
@@ -44,7 +47,7 @@ public class FileStorageServiceImplTest {
 
     @Test
     public void testStopService() throws Exception {
-        FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(MAX_DISK_SPACE, STORAGE_PATH);
+        FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(MAX_DISK_SPACE, STORAGE_ROOT);
 
         fileStorageService.startService();
         fileStorageService.stopService();
@@ -54,7 +57,7 @@ public class FileStorageServiceImplTest {
 
     @Test
     public void testSaveFile() throws Exception {
-        final FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(MAX_DISK_SPACE, STORAGE_PATH);
+        final FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(MAX_DISK_SPACE, STORAGE_ROOT);
         fileStorageService.startService();
 
         final String filename = getRandomFileName();
@@ -70,7 +73,7 @@ public class FileStorageServiceImplTest {
 
     @Test
     public void testExpiredFileDeleted() throws Exception {
-        final FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(MAX_DISK_SPACE, STORAGE_PATH);
+        final FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(MAX_DISK_SPACE, STORAGE_ROOT);
         fileStorageService.startService();
 
         final String filename = getRandomFileName();
@@ -89,7 +92,7 @@ public class FileStorageServiceImplTest {
 
     @Test
     public void testReadFile() throws Exception {
-        final FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(MAX_DISK_SPACE, STORAGE_PATH);
+        final FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(MAX_DISK_SPACE, STORAGE_ROOT);
         fileStorageService.startService();
 
         final String filename = getRandomFileName();
@@ -106,7 +109,7 @@ public class FileStorageServiceImplTest {
 
     @Test
     public void testDeleteFile() throws Exception {
-        final FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(MAX_DISK_SPACE, STORAGE_PATH);
+        final FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(MAX_DISK_SPACE, STORAGE_ROOT);
         fileStorageService.startService();
 
         final String filename = getRandomFileName();
@@ -123,7 +126,7 @@ public class FileStorageServiceImplTest {
 
     @Test
     public void testGetFreeStorageSpace() throws Exception {
-        final FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(MAX_DISK_SPACE, STORAGE_PATH);
+        final FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(MAX_DISK_SPACE, STORAGE_ROOT);
         fileStorageService.startService();
 
         final long freeSpaceBefore = fileStorageService.getFreeStorageSpace();
@@ -158,7 +161,7 @@ public class FileStorageServiceImplTest {
 
     @Test
     public void testPurge() throws Exception {
-        final FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(MAX_DISK_SPACE, STORAGE_PATH);
+        final FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(MAX_DISK_SPACE, STORAGE_ROOT);
         fileStorageService.startService();
 
         while (fileStorageService.getFreeStorageSpace() > MAX_DISK_SPACE * 0.1) {
@@ -177,14 +180,14 @@ public class FileStorageServiceImplTest {
 
     @Test
     public void testGetSystemFolderSize() throws Exception {
-        final FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(MAX_DISK_SPACE, STORAGE_PATH);
+        final FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(MAX_DISK_SPACE, STORAGE_ROOT);
         fileStorageService.startService();
 
         fileStorageService.saveFile(getRandomFileName(), getRandomData(), 40000);
         fileStorageService.saveFile(getRandomFileName(), getRandomData(), 40000);
         fileStorageService.saveFile(getRandomFileName(), getRandomData(), 40000);
 
-        final Path systemFolderPath = Paths.get(STORAGE_PATH, FileStorageServiceImpl.SYSTEM_FOLDER_NAME);
+        final Path systemFolderPath = Paths.get(STORAGE_ROOT, FileStorageServiceImpl.SYSTEM_FOLDER_NAME);
         final File systemFolder = new File(String.valueOf(systemFolderPath));
         final File[] files = systemFolder.listFiles();
 
@@ -201,7 +204,7 @@ public class FileStorageServiceImplTest {
 
     @Test
     public void testClearEmptyDirectories() throws Exception {
-        final FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(MAX_DISK_SPACE, STORAGE_PATH);
+        final FileStorageServiceImpl fileStorageService = new FileStorageServiceImpl(MAX_DISK_SPACE, STORAGE_ROOT);
         fileStorageService.startService();
 
         final String fileName = getRandomFileName();
@@ -210,7 +213,21 @@ public class FileStorageServiceImplTest {
 
         fileStorageService.clearEmptyDirectories();
 
-        boolean condition = true;
+        final File dataDirectory = new File(String.valueOf(Paths.get(STORAGE_ROOT, DATA_FOLDER_NAME)));
+        Deque<File> stack = new ArrayDeque<>();
+        stack.push(dataDirectory);
 
+
+        while (!stack.isEmpty()) {
+            final File[] files = stack.pop().listFiles();
+            for (File file : files) {
+                if (file.isDirectory()) {
+                    if (file.list().length == 0)
+                        assertTrue("Directory '" + file.getPath() + "' empty but exist", false);
+                    else
+                        stack.push(file);
+                }
+            }
+        }
     }
 }
