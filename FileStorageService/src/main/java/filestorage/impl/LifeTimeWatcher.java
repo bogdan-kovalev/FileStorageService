@@ -107,8 +107,11 @@ public class LifeTimeWatcher implements Runnable {
                 Thread.sleep(SLEEP_TIME);
                 deleteExpiredFiles();
             } catch (InterruptedException e) {
-                run = false;
-                storeSystemData();
+                synchronized (this) {
+                    run = false;
+                    storeSystemData();
+                    notify();
+                }
             }
         }
     }

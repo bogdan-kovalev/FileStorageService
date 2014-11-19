@@ -26,8 +26,8 @@ public class BasicFileStorageService implements FileStorageService {
     public static final String SYSTEM_FOLDER_NAME = "system";
     public static final String SYSTEM_FILE_NAME = "system.data";
     public static final String DATA_FOLDER_NAME = "data";
-
     private static final int BUFFER_SIZE = 1024;
+
     private final String STORAGE_ROOT;
 
     private boolean serviceIsStarted = false;
@@ -37,11 +37,10 @@ public class BasicFileStorageService implements FileStorageService {
 
     private LifeTimeWatcher lifeTimeWatcher;
     private StorageSpaceInspector storageSpaceInspector;
-    private Thread liveTimeWatcherThread;
+    private Thread lifeTimeWatcherThread;
 
     /**
-     *
-     * @param diskSpace Maximum disk space that service can use for work
+     * @param diskSpace   Maximum disk space that service can use for work
      * @param storageRoot
      * @throws UnableToCreateStorageException
      */
@@ -61,7 +60,7 @@ public class BasicFileStorageService implements FileStorageService {
     }
 
     /**
-     * This method starts all accessorial modules of the service, which run in separated threads.
+     * This method starts all accessorial modules of the service.
      * If service is not started, all public methods will be throw {@code StorageServiceIsNotStartedError}.
      *
      * @throws ServiceStartError
@@ -72,6 +71,7 @@ public class BasicFileStorageService implements FileStorageService {
             logger.info("Service is already started");
             return;
         }
+
         storageSpaceInspector = new StorageSpaceInspector(diskSpace, STORAGE_ROOT);
 
         try {
@@ -80,8 +80,9 @@ public class BasicFileStorageService implements FileStorageService {
             throw new ServiceStartError();
         }
 
-        liveTimeWatcherThread = new Thread(lifeTimeWatcher);
-        liveTimeWatcherThread.start();
+        lifeTimeWatcherThread = new Thread(lifeTimeWatcher);
+        lifeTimeWatcherThread.start();
+
         serviceIsStarted = true;
 
         logger.info("Service is started successfully.");
@@ -89,7 +90,7 @@ public class BasicFileStorageService implements FileStorageService {
 
     /**
      * This method stops all accessorial modules.
-     * All public methods will be throw {@code StorageServiceIsNotStartedError}.
+     * After stopping, all public methods of the service will be throw {@code StorageServiceIsNotStartedError}.
      */
     public void stopService() {
         logger.info("Try to stop the service...");
@@ -97,10 +98,17 @@ public class BasicFileStorageService implements FileStorageService {
             logger.info("Service is not started");
             return;
         }
+        lifeTimeWatcherThread.interrupt();
 
-        liveTimeWatcherThread.interrupt();
+        synchronized (lifeTimeWatcher) {
+            try {
+                lifeTimeWatcher.wait(1000);
+            } catch (InterruptedException ignored) {
+            }
+        }
+
         lifeTimeWatcher = null;
-        liveTimeWatcherThread = null;
+        lifeTimeWatcherThread = null;
 
         serviceIsStarted = false;
         logger.info("Service is stopped.");
@@ -171,6 +179,7 @@ public class BasicFileStorageService implements FileStorageService {
 
     /**
      * This method releases free disk space by deleting old files.
+     *
      * @param percents - The percentage of required free space from the total disk space.
      * @throws StorageServiceIsNotStartedError
      * @throws InvalidPercentsValueException
@@ -239,6 +248,7 @@ public class BasicFileStorageService implements FileStorageService {
 
     /**
      * This method tries to lock current FileChannel and throw {@code FileLockedException} if it already locked.
+     *
      * @param out
      * @return
      * @throws FileLockedException
@@ -258,6 +268,7 @@ public class BasicFileStorageService implements FileStorageService {
 
     /**
      * Returns true if and only if storage root folder was created.
+     *
      * @return
      */
     private boolean createStorage() {
