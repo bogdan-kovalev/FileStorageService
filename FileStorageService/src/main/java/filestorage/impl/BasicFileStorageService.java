@@ -193,7 +193,7 @@ public class BasicFileStorageService implements FileStorageService {
             throw new InvalidPercentsValueException();
 
         storageSpaceInspector.purge((long) (diskSpace * percents));
-        logger.info("{} percents of the storage disk space was successfully purged.");
+        logger.info("{} percents of the storage disk space was successfully purged.", percents);
     }
 
     public long getSystemFolderSize() throws StorageServiceIsNotStartedError {
