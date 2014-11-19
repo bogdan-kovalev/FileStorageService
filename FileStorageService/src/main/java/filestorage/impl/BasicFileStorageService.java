@@ -108,7 +108,7 @@ public class BasicFileStorageService implements FileStorageService {
 
     @Override
     public void saveFile(String key, InputStream inputStream) throws StorageException, IOException {
-        logger.info("Saving of {} ...", key);
+        logger.info("Saving of '{}' ...", key);
         if (!serviceIsStarted)
             throw new StorageServiceIsNotStartedError();
 
@@ -120,24 +120,24 @@ public class BasicFileStorageService implements FileStorageService {
 
         Files.createDirectories(Paths.get(destinationPath));
         writeFile(filePath, Channels.newChannel(inputStream));
-        logger.info("File {} saved", key);
+        logger.info("File '{}' saved", key);
     }
 
     @Override
     public void saveFile(String key, InputStream inputStream, long lifeTimeMillis) throws StorageException, IOException {
-        logger.info("Saving of {} . Life-time = {} milliseconds", key, lifeTimeMillis);
+        logger.info("Saving of '{}' . Life-time = {} milliseconds", key, lifeTimeMillis);
         if (!serviceIsStarted)
             throw new StorageServiceIsNotStartedError();
 
         saveFile(key, inputStream);
 
         lifeTimeWatcher.addFile(key, lifeTimeMillis);
-        logger.info("File {} saved", key);
+        logger.info("File '{}' saved", key);
     }
 
     @Override
     public InputStream readFile(String key) throws StorageServiceIsNotStartedError, FileNotFoundException {
-        logger.info("Reading of {} ...", key);
+        logger.info("Reading of '{}' ...", key);
         if (!serviceIsStarted)
             throw new StorageServiceIsNotStartedError();
 
@@ -148,7 +148,7 @@ public class BasicFileStorageService implements FileStorageService {
 
     @Override
     public void deleteFile(String key) throws StorageServiceIsNotStartedError, IOException {
-        logger.info("Deleting of {} ...", key);
+        logger.info("Deleting of '{}' ...", key);
         if (!serviceIsStarted)
             throw new StorageServiceIsNotStartedError();
 
@@ -159,14 +159,13 @@ public class BasicFileStorageService implements FileStorageService {
             Files.delete(filePath);
             storageSpaceInspector.decrementUsedSpace(length);
         }
-        logger.info("File {} deleted.", key);
+        logger.info("File '{}' deleted.", key);
     }
 
     @Override
     public long getFreeStorageSpace() throws StorageServiceIsNotStartedError {
         if (!serviceIsStarted)
             throw new StorageServiceIsNotStartedError();
-        logger.info("Returning of the free storage space.");
         return storageSpaceInspector.getFreeSpace();
     }
 
@@ -192,14 +191,13 @@ public class BasicFileStorageService implements FileStorageService {
     public long getSystemFolderSize() throws StorageServiceIsNotStartedError {
         if (!serviceIsStarted)
             throw new StorageServiceIsNotStartedError();
-        logger.info("Returning of the storage system folder size.");
         return storageSpaceInspector.getSystemFolderSize();
     }
 
     public void deleteEmptyDirectories() {
         logger.info("Deleting of empty directories.");
         storageSpaceInspector.deleteEmptyDirectories(new File(dataFolderPath));
-        logger.info("Empty directories is deleted");
+        logger.info("Empty directories are deleted");
     }
 
     public boolean serviceIsStarted() {
@@ -207,7 +205,7 @@ public class BasicFileStorageService implements FileStorageService {
     }
 
     private void writeFile(Path filePath, ReadableByteChannel channel) throws IOException, StorageException {
-        logger.info("Writing of {} onto the disk space...", filePath);
+        logger.info("Writing of '{}' onto the disk space...", filePath);
         FileLock fileLock = null;
         try (final FileChannel out = new FileOutputStream(String.valueOf(filePath)).getChannel()) {
 
@@ -236,7 +234,7 @@ public class BasicFileStorageService implements FileStorageService {
             // arises when destination folders hierarchy corrupted
             throw new StorageCorruptedException();
         }
-        logger.info("{} successfully wrote", filePath);
+        logger.info("'{}' successfully wrote", filePath);
     }
 
     /**

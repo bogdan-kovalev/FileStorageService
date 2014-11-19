@@ -1,5 +1,8 @@
 package filestorage.impl;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -15,6 +18,8 @@ import java.util.stream.Stream;
  * @author Bogdan Kovalev.
  */
 public class StorageSpaceInspector {
+
+    private static final Logger logger = LoggerFactory.getLogger(StorageSpaceInspector.class);
 
     private final long diskSpace;
     private final String STORAGE_ROOT;
@@ -72,14 +77,16 @@ public class StorageSpaceInspector {
         if (!start.isDirectory()) return;
 
         final File[] files = start.listFiles();
-        if (files == null) return;
-        for (File file : files) {
-            if (file.isFile()) return;
+        if (files != null)
+            for (File file : files) {
+                if (file.isFile()) return;
 
-            if (file.isDirectory())
-                deleteEmptyDirectories(file);
+                if (file.isDirectory())
+                    deleteEmptyDirectories(file);
+            }
+        if (start.delete()) {
+            logger.info("'{}' directory deleted!", start);
         }
-        start.delete();
     }
 
     /**
