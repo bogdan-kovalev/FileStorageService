@@ -15,6 +15,7 @@ import static filestorage.impl.BasicFileStorageService.SYSTEM_FOLDER_NAME;
 
 /**
  * This class provides possibility to delete expired files.
+ *
  * @author Bogdan Kovalev.
  */
 public class LifeTimeWatcher implements Runnable {
@@ -49,7 +50,7 @@ public class LifeTimeWatcher implements Runnable {
     public void deleteExpiredFiles() {
 
         for (String key : systemData.stringPropertyNames()) {
-            Path path = Paths.get(STORAGE_ROOT, PathConstructor.findDestinationPath(key, DATA_FOLDER_NAME), key);
+            Path path = Paths.get(STORAGE_ROOT, PathConstructor.calculateDestinationPath(key, DATA_FOLDER_NAME), key);
             try {
                 final FileTime creationTime = (FileTime) Files.getAttribute(path, "basic:creationTime");
 
@@ -121,6 +122,7 @@ public class LifeTimeWatcher implements Runnable {
 
     /**
      * Returns size of systemData object in bytes.
+     *
      * @return
      */
     private long calculateDataOutSize() {

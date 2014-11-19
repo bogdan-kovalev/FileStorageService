@@ -1,9 +1,10 @@
 package filestorage.impl;
 
-
 import filestorage.FileStorageService;
 import filestorage.StorageException;
 import filestorage.impl.exception.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -19,6 +20,8 @@ import java.nio.file.Paths;
  * @author Bogdan Kovalev
  */
 public class BasicFileStorageService implements FileStorageService {
+
+    private static final Logger logger = LoggerFactory.getLogger(BasicFileStorageService.class);
 
     public static final String SYSTEM_FOLDER_NAME = "system";
     public static final String SYSTEM_FILE_NAME = "system.data";
@@ -46,11 +49,15 @@ public class BasicFileStorageService implements FileStorageService {
         this.diskSpace = diskSpace;
         this.STORAGE_ROOT = storageRoot;
 
+        logger.info("New storage. Disk space: {}. Storage root: {}", diskSpace, storageRoot);
+
         this.dataFolderPath = String.valueOf(Paths.get(STORAGE_ROOT, DATA_FOLDER_NAME));
 
         if (!createStorage()) {
             throw new UnableToCreateStorageException();
         }
+
+        logger.info("Storage created!");
     }
 
     /**
@@ -60,7 +67,9 @@ public class BasicFileStorageService implements FileStorageService {
      * @throws ServiceStartError
      */
     public void startService() throws ServiceStartError {
+        logger.info("Try to start the service...");
         if (serviceIsStarted) {
+            logger.info("Service is already started");
             return;
         }
         storageSpaceInspector = new StorageSpaceInspector(diskSpace, STORAGE_ROOT);
@@ -74,6 +83,8 @@ public class BasicFileStorageService implements FileStorageService {
         liveTimeWatcherThread = new Thread(lifeTimeWatcher);
         liveTimeWatcherThread.start();
         serviceIsStarted = true;
+
+        logger.info("Service is started successfully.");
     }
 
     /**
@@ -81,7 +92,9 @@ public class BasicFileStorageService implements FileStorageService {
      * All public methods will be throw {@code StorageServiceIsNotStartedError}.
      */
     public void stopService() {
+        logger.info("Try to stop the service...");
         if (!serviceIsStarted) {
+            logger.info("Service is not started");
             return;
         }
 
@@ -90,14 +103,16 @@ public class BasicFileStorageService implements FileStorageService {
         liveTimeWatcherThread = null;
 
         serviceIsStarted = false;
+        logger.info("Service is stopped.");
     }
 
     @Override
     public void saveFile(String key, InputStream inputStream) throws StorageException, IOException {
+        logger.info("Saving of {} ...", key);
         if (!serviceIsStarted)
             throw new StorageServiceIsNotStartedError();
 
-        final String destinationPath = PathConstructor.findDestinationPath(key, dataFolderPath);
+        final String destinationPath = PathConstructor.calculateDestinationPath(key, dataFolderPath);
 
         Path filePath = Paths.get(destinationPath, key);
         if (Files.exists(filePath))
@@ -105,48 +120,53 @@ public class BasicFileStorageService implements FileStorageService {
 
         Files.createDirectories(Paths.get(destinationPath));
         writeFile(filePath, Channels.newChannel(inputStream));
-
+        logger.info("File {} saved", key);
     }
 
     @Override
     public void saveFile(String key, InputStream inputStream, long lifeTimeMillis) throws StorageException, IOException {
+        logger.info("Saving of {} . Life-time = {} milliseconds", key, lifeTimeMillis);
         if (!serviceIsStarted)
             throw new StorageServiceIsNotStartedError();
 
         saveFile(key, inputStream);
 
         lifeTimeWatcher.addFile(key, lifeTimeMillis);
+        logger.info("File {} saved", key);
     }
 
     @Override
     public InputStream readFile(String key) throws StorageServiceIsNotStartedError, FileNotFoundException {
+        logger.info("Reading of {} ...", key);
         if (!serviceIsStarted)
             throw new StorageServiceIsNotStartedError();
 
-        Path filePath = Paths.get(PathConstructor.findDestinationPath(key, dataFolderPath), key);
+        Path filePath = Paths.get(PathConstructor.calculateDestinationPath(key, dataFolderPath), key);
 
         return new BufferedInputStream(new FileInputStream(String.valueOf(filePath)));
     }
 
     @Override
     public void deleteFile(String key) throws StorageServiceIsNotStartedError, IOException {
+        logger.info("Deleting of {} ...", key);
         if (!serviceIsStarted)
             throw new StorageServiceIsNotStartedError();
 
-        Path filePath = Paths.get(PathConstructor.findDestinationPath(key, dataFolderPath), key);
+        Path filePath = Paths.get(PathConstructor.calculateDestinationPath(key, dataFolderPath), key);
 
         if (Files.exists(filePath)) {
             final long length = Files.size(filePath);
             Files.delete(filePath);
             storageSpaceInspector.decrementUsedSpace(length);
         }
+        logger.info("File {} deleted.", key);
     }
 
     @Override
     public long getFreeStorageSpace() throws StorageServiceIsNotStartedError {
         if (!serviceIsStarted)
             throw new StorageServiceIsNotStartedError();
-
+        logger.info("Returning of the free storage space.");
         return storageSpaceInspector.getFreeSpace();
     }
 
@@ -158,6 +178,7 @@ public class BasicFileStorageService implements FileStorageService {
      */
     @Override
     public void purge(float percents) throws StorageServiceIsNotStartedError, InvalidPercentsValueException {
+        logger.info("Start purging of the storage disk space.");
         if (!serviceIsStarted)
             throw new StorageServiceIsNotStartedError();
 
@@ -165,17 +186,20 @@ public class BasicFileStorageService implements FileStorageService {
             throw new InvalidPercentsValueException();
 
         storageSpaceInspector.purge((long) (diskSpace * percents));
+        logger.info("{} percents of the storage disk space was successfully purged.");
     }
 
     public long getSystemFolderSize() throws StorageServiceIsNotStartedError {
         if (!serviceIsStarted)
             throw new StorageServiceIsNotStartedError();
-
+        logger.info("Returning of the storage system folder size.");
         return storageSpaceInspector.getSystemFolderSize();
     }
 
-    public void clearEmptyDirectories() {
-        storageSpaceInspector.clearEmptyDirectories(new File(dataFolderPath));
+    public void deleteEmptyDirectories() {
+        logger.info("Deleting of empty directories.");
+        storageSpaceInspector.deleteEmptyDirectories(new File(dataFolderPath));
+        logger.info("Empty directories is deleted");
     }
 
     public boolean serviceIsStarted() {
@@ -183,6 +207,7 @@ public class BasicFileStorageService implements FileStorageService {
     }
 
     private void writeFile(Path filePath, ReadableByteChannel channel) throws IOException, StorageException {
+        logger.info("Writing of {} onto the disk space...", filePath);
         FileLock fileLock = null;
         try (final FileChannel out = new FileOutputStream(String.valueOf(filePath)).getChannel()) {
 
@@ -211,6 +236,7 @@ public class BasicFileStorageService implements FileStorageService {
             // arises when destination folders hierarchy corrupted
             throw new StorageCorruptedException();
         }
+        logger.info("{} successfully wrote", filePath);
     }
 
     /**

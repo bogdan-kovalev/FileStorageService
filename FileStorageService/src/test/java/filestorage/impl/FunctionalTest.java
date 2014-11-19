@@ -211,7 +211,7 @@ public class FunctionalTest {
         fileStorageService.saveFile(fileName, getRandomData());
         fileStorageService.deleteFile(fileName);
 
-        fileStorageService.clearEmptyDirectories();
+        fileStorageService.deleteEmptyDirectories();
 
         final File dataDirectory = new File(String.valueOf(Paths.get(STORAGE_ROOT, DATA_FOLDER_NAME)));
         Deque<File> stack = new ArrayDeque<>();

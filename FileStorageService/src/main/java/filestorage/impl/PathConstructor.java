@@ -6,7 +6,7 @@ import java.util.List;
 import static java.io.File.separator;
 
 /**
- * Maximum 2047 files in the lowest level folder.
+ * This is util class. It calculates a destination path for storing the file with the given 'key'.
  *
  * @author Bogdan Kovalev.
  */
@@ -19,17 +19,19 @@ public class PathConstructor {
     }};
 
     /**
-     * This method returns the path where the file this key will be saved.
-     * The depth of folders hierarchy equals to the number of the DIVIDERS.
-     * Each folder can contain a file with the hashcode that enters the subband hashcode value for this folder.
-     * Subband hash code value for the folder at this level of nesting is calculated by dividing the range of values
-     * of the hashcode of the key on the appropriate divider.
+     * This method returns a path where a file with this 'key' can be stored.
+     * Algorithm work basics on the hash-code value of the 'key'. Destination path for the file with the given 'key'
+     * represent a nested folders. Level of the nesting equal to the number of the 'DIVIDERS' and it equals 3.
+     * The name of each folder in a folders hierarchy echoes to the range of the values of the hash-code that this folder
+     * can contains.<p>
+     * Example:<p>
+     * <i><b>'startFolder'</b>\[-1207959552_-1174405121]\[-1215299584_-1215037441]\[-1215328256_-1215326209]\</i>
      *
      * @param key
      * @param startFolder
      * @return
      */
-    public static String findDestinationPath(String key, String startFolder) {
+    public static String calculateDestinationPath(String key, String startFolder) {
         final int hashcode = key.hashCode();
 
         String path = "";

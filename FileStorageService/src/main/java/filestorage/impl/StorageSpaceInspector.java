@@ -21,11 +21,9 @@ public class StorageSpaceInspector {
 
     private long usedSpace;
 
-    private TreeSet<Path> purgeSet = new TreeSet<>(new Comparator() {
+    private TreeSet<Path> purgeSet = new TreeSet<>(new Comparator<Path>() {
         @Override
-        public int compare(Object o1, Object o2) {
-            final Path file1 = (Path) o1;
-            final Path file2 = (Path) o2;
+        public int compare(Path file1, Path file2) {
             try {
                 final FileTime creationTime1 = (FileTime) Files.getAttribute(file1, "basic:creationTime");
                 final FileTime creationTime2 = (FileTime) Files.getAttribute(file2, "basic:creationTime");
@@ -70,14 +68,16 @@ public class StorageSpaceInspector {
         performInStorage(incrementUsedSpace);
     }
 
-    public void clearEmptyDirectories(File start) {
+    public void deleteEmptyDirectories(File start) {
         if (!start.isDirectory()) return;
 
-        for (File file : start.listFiles()) {
+        final File[] files = start.listFiles();
+        if (files == null) return;
+        for (File file : files) {
             if (file.isFile()) return;
 
             if (file.isDirectory())
-                clearEmptyDirectories(file);
+                deleteEmptyDirectories(file);
         }
         start.delete();
     }
@@ -106,7 +106,8 @@ public class StorageSpaceInspector {
 
     /**
      * This method will be accept this consumer for all file-paths in the storage.
-     * @param consumer
+     *
+     * @param consumer consumer with specific function
      */
     private void performInStorage(Consumer<Path> consumer) {
         try (final Stream<Path> walk = Files.walk(Paths.get(STORAGE_ROOT))) {

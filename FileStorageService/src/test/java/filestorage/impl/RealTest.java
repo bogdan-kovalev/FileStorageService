@@ -46,7 +46,6 @@ public class RealTest {
                     while (fileStorageService.serviceIsStarted() & fileStorageService.getFreeStorageSpace() > MAX_DISK_SPACE * 0.1) {
                         try {
                             final String fileName = getRandomFileName();
-                            System.out.println("saveFile( " + fileName + " )");
                             fileStorageService.saveFile(fileName, getRandomData());
                             savedFiles.add(fileName);
                             Thread.sleep(50);
@@ -54,7 +53,6 @@ public class RealTest {
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
-                        System.out.println();
                     }
                 } catch (StorageServiceIsNotStartedError storageServiceIsNotStartedError) {
                     storageServiceIsNotStartedError.printStackTrace();
@@ -70,13 +68,11 @@ public class RealTest {
                         Thread.sleep(50);
                         if (savedFiles.isEmpty()) continue;
                         final String key = savedFiles.get(random.nextInt(savedFiles.size()));
-                        System.out.println("readFile( " + key + ")");
                         try (InputStream inputStream = fileStorageService.readFile(key)) {
                         }
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
-                    System.out.println();
                 }
             }
         }).start();
@@ -90,13 +86,11 @@ public class RealTest {
                         if (savedFiles.isEmpty()) continue;
                         final int index = random.nextInt(savedFiles.size());
                         final String key = savedFiles.get(index);
-                        System.out.println("deleteFile( " + key + " )");
                         fileStorageService.deleteFile(key);
                         savedFiles.remove(index);
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
-                    System.out.println();
                 }
             }
         }).start();
@@ -110,13 +104,11 @@ public class RealTest {
                         try {
                             final int liveTimeMillis = random.nextInt(400) + 100;
                             final String fileName = getRandomFileName();
-                            System.out.println("saveFile( " + fileName + " , " + liveTimeMillis + " )");
                             fileStorageService.saveFile(fileName, getRandomData(), liveTimeMillis);
                             Thread.sleep(30);
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
-                        System.out.println();
                     }
                 } catch (StorageServiceIsNotStartedError storageServiceIsNotStartedError) {
                     storageServiceIsNotStartedError.printStackTrace();
@@ -129,6 +121,5 @@ public class RealTest {
             Thread.sleep(5);
 
         fileStorageService.stopService();
-        System.out.println("Service stopped!!!");
     }
 }
