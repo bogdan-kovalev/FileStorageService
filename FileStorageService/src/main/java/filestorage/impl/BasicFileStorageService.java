@@ -41,7 +41,7 @@ public class BasicFileStorageService implements FileStorageService {
 
     /**
      * @param diskSpace   Maximum disk space that service can use for work
-     * @param storageRoot
+     * @param storageRoot String path to storage root folder
      * @throws UnableToCreateStorageException
      */
     public BasicFileStorageService(long diskSpace, String storageRoot) throws UnableToCreateStorageException {
@@ -133,14 +133,13 @@ public class BasicFileStorageService implements FileStorageService {
 
     @Override
     public void saveFile(String key, InputStream inputStream, long lifeTimeMillis) throws StorageException, IOException {
-        logger.info("Saving of '{}' . Life-time = {} milliseconds", key, lifeTimeMillis);
+        logger.info("Life-time of '{}' = {} milliseconds", key, lifeTimeMillis);
         if (!serviceIsStarted)
             throw new StorageServiceIsNotStartedError();
 
         saveFile(key, inputStream);
 
         lifeTimeWatcher.addFile(key, lifeTimeMillis);
-        logger.info("File '{}' saved", key);
     }
 
     @Override
@@ -217,7 +216,6 @@ public class BasicFileStorageService implements FileStorageService {
         logger.info("Writing of '{}' onto the disk space...", filePath);
         FileLock fileLock = null;
         try (final FileChannel out = new FileOutputStream(String.valueOf(filePath)).getChannel()) {
-
             try {
                 fileLock = tryToLock(out);
 
@@ -249,8 +247,8 @@ public class BasicFileStorageService implements FileStorageService {
     /**
      * This method tries to lock current FileChannel and throw {@code FileLockedException} if it already locked.
      *
-     * @param out
-     * @return
+     * @param out current FileChannel
+     * @return FileLock
      * @throws FileLockedException
      */
     private FileLock tryToLock(FileChannel out) throws FileLockedException {
@@ -267,9 +265,7 @@ public class BasicFileStorageService implements FileStorageService {
     }
 
     /**
-     * Returns true if and only if storage root folder was created.
-     *
-     * @return
+     * @return true if and only if storage root folder was created.
      */
     private boolean createStorage() {
         final File root = new File(STORAGE_ROOT);

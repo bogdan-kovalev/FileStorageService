@@ -85,7 +85,7 @@ public class FunctionalTest {
         fileStorageService.startService();
 
         final String filename = getRandomFileName();
-        final long lifeTime = 1000;
+        final long lifeTime = 500;
 
         fileStorageService.saveFile(filename, getRandomData(), lifeTime);
 
