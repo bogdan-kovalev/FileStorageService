@@ -12,8 +12,8 @@ import java.nio.file.Paths;
 import java.nio.file.attribute.FileTime;
 import java.util.Properties;
 
-import static filestorage.impl.BasicFileStorageService.DATA_FOLDER_NAME;
-import static filestorage.impl.BasicFileStorageService.SYSTEM_FOLDER_NAME;
+import static filestorage.impl.DefaultFileStorageService.DATA_FOLDER_NAME;
+import static filestorage.impl.DefaultFileStorageService.SYSTEM_FOLDER_NAME;
 
 /**
  * This class provides possibility to delete expired files.
@@ -22,7 +22,7 @@ import static filestorage.impl.BasicFileStorageService.SYSTEM_FOLDER_NAME;
  */
 public class LifeTimeWatcher implements Runnable {
 
-    private static final Logger logger = LoggerFactory.getLogger(LifeTimeWatcher.class);
+    private static final Logger LOG = LoggerFactory.getLogger(LifeTimeWatcher.class);
 
     public static final int SLEEP_TIME = 500;
     private final String STORAGE_ROOT;
@@ -38,7 +38,7 @@ public class LifeTimeWatcher implements Runnable {
         this.STORAGE_ROOT = STORAGE_ROOT;
         storageSpaceInspector = inspector;
 
-        systemFilePath = Paths.get(STORAGE_ROOT, SYSTEM_FOLDER_NAME, BasicFileStorageService.SYSTEM_FILE_NAME);
+        systemFilePath = Paths.get(STORAGE_ROOT, SYSTEM_FOLDER_NAME, DefaultFileStorageService.SYSTEM_FILE_NAME);
 
         if (Files.exists(systemFilePath))
             systemData.load(new FileInputStream(String.valueOf(systemFilePath)));
@@ -61,12 +61,12 @@ public class LifeTimeWatcher implements Runnable {
                 if (System.currentTimeMillis() - creationTime.toMillis() > Long.valueOf(systemData.getProperty(key))) {
                     Files.delete(path);
                     systemData.remove(key);
-                    logger.info("Expired file '{}' successfully deleted.", key);
+                    LOG.info("Expired file '{}' successfully deleted.", key);
                 }
             } catch (NoSuchFileException e) {
                 systemData.remove(key);
             } catch (IOException e) {
-                logger.warn("Expired file '{}' was not deleted because of IOException.", key);
+                LOG.warn("Expired file '{}' was not deleted because of IOException.", key);
             }
         }
 

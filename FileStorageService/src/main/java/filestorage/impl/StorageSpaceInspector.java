@@ -19,7 +19,7 @@ import java.util.stream.Stream;
  */
 public class StorageSpaceInspector {
 
-    private static final Logger logger = LoggerFactory.getLogger(StorageSpaceInspector.class);
+    private static final Logger LOG = LoggerFactory.getLogger(StorageSpaceInspector.class);
 
     private final long diskSpace;
     private final String STORAGE_ROOT;
@@ -53,7 +53,7 @@ public class StorageSpaceInspector {
     private Consumer<Path> prepareForPurge = new Consumer<Path>() {
         @Override
         public void accept(Path path) {
-            if (path.endsWith(BasicFileStorageService.SYSTEM_FILE_NAME)) return;
+            if (path.endsWith(DefaultFileStorageService.SYSTEM_FILE_NAME)) return;
             final File file = new File(String.valueOf(path));
             if (file.isFile()) {
                 purgeSet.add(path);
@@ -85,7 +85,7 @@ public class StorageSpaceInspector {
                     deleteEmptyDirectories(file);
             }
         if (start.delete()) {
-            logger.info("'{}' directory deleted!", start);
+            LOG.info("'{}' directory deleted!", start);
         }
     }
 
@@ -138,7 +138,7 @@ public class StorageSpaceInspector {
 
     public long getSystemFolderSize() {
         long size = 0;
-        String systemFolderPath = String.valueOf(Paths.get(STORAGE_ROOT, BasicFileStorageService.SYSTEM_FOLDER_NAME));
+        String systemFolderPath = String.valueOf(Paths.get(STORAGE_ROOT, DefaultFileStorageService.SYSTEM_FOLDER_NAME));
 
         final File[] files = new File(systemFolderPath).listFiles();
         if (files != null)
