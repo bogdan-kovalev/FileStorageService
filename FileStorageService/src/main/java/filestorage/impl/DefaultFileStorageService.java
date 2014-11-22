@@ -7,7 +7,9 @@ import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.nio.ByteBuffer;
-import java.nio.channels.*;
+import java.nio.channels.Channels;
+import java.nio.channels.FileChannel;
+import java.nio.channels.ReadableByteChannel;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -25,7 +27,6 @@ public class DefaultFileStorageService implements FileStorageService {
     public static final String SYSTEM_FOLDER_NAME = "system";
     public static final String SYSTEM_FILE_NAME = "system.data";
     public static final String DATA_FOLDER_NAME = "data";
-    private static final int WRITE_BUFFER = 1024;
 
     private final String STORAGE_ROOT;
 
@@ -123,14 +124,22 @@ public class DefaultFileStorageService implements FileStorageService {
         final String destinationPath = PathConstructor.calculateDestinationPath(key, dataFolderPath);
 
         Path filePath = Paths.get(destinationPath, key);
-        if (Files.exists(filePath))
-            throw new FileAlreadyExistsException(key);
 
         try {
             Files.createDirectories(Paths.get(destinationPath));
+            Files.createFile(filePath);
+        } catch (FileAlreadyExistsException e) {
+            LOG.warn(e.getMessage());
+            throw new FileAlreadyExistsException(key);
+        } catch (IOException e) {
+            LOG.error("Can't create file {}", key);
+            throw new IllegalStateException(e.getMessage());
+        }
+
+        try {
             writeFile(filePath, Channels.newChannel(inputStream));
         } catch (IOException e) {
-            LOG.error("Can't save file: '{}'", key);
+            LOG.error("Can't write to file: '{}'", key);
             throw new IllegalStateException(e.getMessage());
         }
 
@@ -225,54 +234,26 @@ public class DefaultFileStorageService implements FileStorageService {
 
     private void writeFile(Path filePath, ReadableByteChannel channel) throws IOException, StorageCorruptedException, NotEnoughFreeSpaceException, StorageServiceIsNotStartedError, FileLockedException {
         LOG.info("Writing of '{}' onto the disk space...", filePath);
-        FileLock fileLock = null;
+
         try (final FileChannel out = new FileOutputStream(String.valueOf(filePath)).getChannel()) {
-            try {
-                fileLock = tryToLock(out);
 
-                final ByteBuffer buffer = ByteBuffer.allocate(WRITE_BUFFER);
-
-                while (channel.read(buffer) != -1) {
-                    if (getFreeStorageSpace() < WRITE_BUFFER) {
-                        throw new NotEnoughFreeSpaceException();
-                    }
-                    buffer.flip();
-                    out.write(buffer);
-
-                    storageSpaceInspector.incrementUsedSpace(buffer.position());
-
-                    buffer.clear();
+            final ByteBuffer buffer = ByteBuffer.allocate(1024);
+            while (channel.read(buffer) != -1) {
+                if (getFreeStorageSpace() < 1024) {
+                    throw new NotEnoughFreeSpaceException();
                 }
-            } finally {
-                if (fileLock != null) {
-                    fileLock.release();
-                }
+                buffer.flip();
+                out.write(buffer);
+
+                storageSpaceInspector.incrementUsedSpace(buffer.position());
+
+                buffer.clear();
             }
         } catch (FileNotFoundException e) {
             // arises when destination folders hierarchy corrupted
             throw new StorageCorruptedException();
         }
-        LOG.info("'{}' successfully wrote", filePath);
-    }
-
-    /**
-     * This method tries to lock current FileChannel and throw {@code FileLockedException} if it already locked.
-     *
-     * @param out current FileChannel
-     * @return FileLock
-     * @throws FileLockedException
-     */
-    private FileLock tryToLock(FileChannel out) throws FileLockedException {
-        FileLock lock = null;
-        try {
-            lock = out.lock();
-        } catch (OverlappingFileLockException e) {
-            throw new FileLockedException();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        return lock;
+        LOG.info("'{}' successfully written", filePath);
     }
 
     /**
