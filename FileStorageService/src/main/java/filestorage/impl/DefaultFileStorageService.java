@@ -132,14 +132,14 @@ public class DefaultFileStorageService implements FileStorageService {
             LOG.warn(e.getMessage());
             throw new FileAlreadyExistsException(key);
         } catch (IOException e) {
-            LOG.error("Can't create file {}", key);
+            LOG.error("Can't create a file {}", key);
             throw new IllegalStateException(e.getMessage());
         }
 
         try {
             writeFile(filePath, Channels.newChannel(inputStream));
         } catch (IOException e) {
-            LOG.error("Can't write to file: '{}'", key);
+            LOG.error("Can't write to a file: '{}'", key);
             throw new IllegalStateException(e.getMessage());
         }
 
@@ -190,30 +190,40 @@ public class DefaultFileStorageService implements FileStorageService {
     }
 
     @Override
-    public long getFreeStorageSpace() throws StorageServiceIsNotStartedError {
+    public long getFreeStorageSpaceInBytes() throws StorageServiceIsNotStartedError {
         if (!serviceIsStarted)
             throw new StorageServiceIsNotStartedError();
         return storageSpaceInspector.getFreeSpace();
     }
 
+    @Override
+    public float getFreeStorageSpaceInPercents() throws StorageServiceIsNotStartedError {
+        return getFreeStorageSpaceInBytes() / diskSpace;
+    }
+
     /**
      * This method releases free disk space by deleting old files.
      *
-     * @param percents - The percentage of required free space from the total disk space.
+     * @param neededFreeSpaceInPercents - The percentage of required free space from the total disk space.
      * @throws StorageServiceIsNotStartedError
      * @throws InvalidPercentsValueException
      */
     @Override
-    public void purge(float percents) throws StorageServiceIsNotStartedError, InvalidPercentsValueException {
-        LOG.info("Start purging of the storage disk space.");
+    public void purge(float neededFreeSpaceInPercents) throws StorageServiceIsNotStartedError, InvalidPercentsValueException {
+        if (neededFreeSpaceInPercents < 0 || neededFreeSpaceInPercents > 1)
+            throw new InvalidPercentsValueException();
+
+        purge((long) (diskSpace * neededFreeSpaceInPercents));
+    }
+
+    @Override
+    public void purge(long neededFreeSpaceInBytes) throws StorageServiceIsNotStartedError {
+        LOG.info("Start purging of a storage disk space.");
         if (!serviceIsStarted)
             throw new StorageServiceIsNotStartedError();
 
-        if (percents < 0 || percents > 1)
-            throw new InvalidPercentsValueException();
-
-        storageSpaceInspector.purge((long) (diskSpace * percents));
-        LOG.info("{} percents of the storage disk space was successfully purged.", percents);
+        storageSpaceInspector.purge(neededFreeSpaceInBytes);
+        LOG.info("{} bytes of the storage disk space was successfully purged.", neededFreeSpaceInBytes);
     }
 
     public long getSystemFolderSize() throws StorageServiceIsNotStartedError {
@@ -223,7 +233,7 @@ public class DefaultFileStorageService implements FileStorageService {
     }
 
     public void deleteEmptyDirectories() {
-        LOG.info("Deleting of empty directories.");
+        LOG.info("Deleting of an empty directories.");
         storageSpaceInspector.deleteEmptyDirectories(new File(dataFolderPath));
         LOG.info("Empty directories are deleted");
     }
@@ -233,13 +243,13 @@ public class DefaultFileStorageService implements FileStorageService {
     }
 
     private void writeFile(Path filePath, ReadableByteChannel channel) throws IOException, StorageCorruptedException, NotEnoughFreeSpaceException, StorageServiceIsNotStartedError, FileLockedException {
-        LOG.info("Writing of '{}' onto the disk space...", filePath);
+        LOG.info("Writing of '{}' onto a disk space...", filePath);
 
         try (final FileChannel out = new FileOutputStream(String.valueOf(filePath)).getChannel()) {
 
             final ByteBuffer buffer = ByteBuffer.allocate(1024);
             while (channel.read(buffer) != -1) {
-                if (getFreeStorageSpace() < 1024) {
+                if (getFreeStorageSpaceInBytes() < 1024) {
                     throw new NotEnoughFreeSpaceException();
                 }
                 buffer.flip();

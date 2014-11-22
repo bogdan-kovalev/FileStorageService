@@ -23,7 +23,11 @@ public interface FileStorageService {
 
     void deleteFile(String key) throws StorageServiceIsNotStartedError;
 
-    long getFreeStorageSpace() throws StorageServiceIsNotStartedError;
+    long getFreeStorageSpaceInBytes() throws StorageServiceIsNotStartedError;
 
-    void purge(float percents) throws StorageServiceIsNotStartedError, InvalidPercentsValueException;
+    float getFreeStorageSpaceInPercents() throws StorageServiceIsNotStartedError;
+
+    void purge(float neededFreeSpaceInPercents) throws StorageServiceIsNotStartedError, InvalidPercentsValueException;
+
+    void purge(long neededFreeSpaceInBytes) throws StorageServiceIsNotStartedError;
 }

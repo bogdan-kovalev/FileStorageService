@@ -140,7 +140,7 @@ public class FunctionalTest {
         final DefaultFileStorageService fileStorageService = new DefaultFileStorageService(MAX_DISK_SPACE, STORAGE_ROOT);
         fileStorageService.startService();
 
-        final long freeSpaceBefore = fileStorageService.getFreeStorageSpace();
+        final long freeSpaceBefore = fileStorageService.getFreeStorageSpaceInBytes();
 
         final String fileName1 = getRandomFileName();
         fileStorageService.saveFile(fileName1, getRandomData());
@@ -165,7 +165,7 @@ public class FunctionalTest {
         total -= deleted;
 
         final long expected = freeSpaceBefore - total;
-        final long actual = fileStorageService.getFreeStorageSpace();
+        final long actual = fileStorageService.getFreeStorageSpaceInBytes();
 
         assertTrue("Free space expected: " + expected + ", actual: " + actual, actual == expected);
     }
@@ -176,7 +176,7 @@ public class FunctionalTest {
         final DefaultFileStorageService fileStorageService = new DefaultFileStorageService(MAX_DISK_SPACE, STORAGE_ROOT);
         fileStorageService.startService();
 
-        while (fileStorageService.getFreeStorageSpace() > MAX_DISK_SPACE * 0.1) {
+        while (fileStorageService.getFreeStorageSpaceInBytes() > MAX_DISK_SPACE * 0.1) {
             final String fileName = getRandomFileName();
             fileStorageService.saveFile(fileName, getRandomData());
         }
@@ -184,7 +184,7 @@ public class FunctionalTest {
         final float percents = 0.5f;
         fileStorageService.purge(percents);
 
-        final long actual = fileStorageService.getFreeStorageSpace();
+        final long actual = fileStorageService.getFreeStorageSpaceInBytes();
         final long expected = (long) (MAX_DISK_SPACE * percents - fileStorageService.getSystemFolderSize());
 
         assertTrue("Free space expected: " + expected + ", actual: " + actual, actual >= expected);
