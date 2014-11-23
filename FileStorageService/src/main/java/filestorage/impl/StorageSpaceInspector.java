@@ -9,10 +9,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.FileTime;
+import java.util.ArrayDeque;
 import java.util.Comparator;
+import java.util.Deque;
 import java.util.TreeSet;
-import java.util.function.Consumer;
-import java.util.stream.Stream;
 
 /**
  * @author Bogdan Kovalev.
@@ -40,26 +40,6 @@ public class StorageSpaceInspector {
             return 0;
         }
     });
-
-    private Consumer<Path> incrementUsedSpace = new Consumer<Path>() {
-        @Override
-        public void accept(Path path) {
-            final File file = new File(String.valueOf(path));
-            if (file.isFile())
-                usedSpace += file.length();
-        }
-    };
-
-    private Consumer<Path> prepareForPurge = new Consumer<Path>() {
-        @Override
-        public void accept(Path path) {
-            if (path.endsWith(DefaultFileStorageService.SYSTEM_FILE_NAME)) return;
-            final File file = new File(String.valueOf(path));
-            if (file.isFile()) {
-                purgeSet.add(path);
-            }
-        }
-    };
 
     public StorageSpaceInspector(long diskSpace, String STORAGE_ROOT) {
         this.diskSpace = diskSpace;
@@ -116,11 +96,20 @@ public class StorageSpaceInspector {
      *
      * @param consumer consumer with specific function
      */
-    private void performInStorage(Consumer<Path> consumer) {
-        try (final Stream<Path> walk = Files.walk(Paths.get(STORAGE_ROOT))) {
-            walk.forEach(consumer);
-        } catch (IOException e) {
-            e.printStackTrace();
+    private void performInStorage(Consumer consumer) {
+        Deque<File> stack = new ArrayDeque<>();
+        stack.push(new File(STORAGE_ROOT));
+
+        while (!stack.isEmpty()) {
+            final File[] files = stack.pop().listFiles();
+            if (files == null) continue;
+            for (File file : files) {
+                if (file.isDirectory()) {
+                    stack.push(file);
+                    continue;
+                }
+                consumer.accept(file.toPath());
+            }
         }
     }
 
@@ -146,5 +135,29 @@ public class StorageSpaceInspector {
                 size += file.length();
             }
         return size;
+    }
+
+    private Consumer incrementUsedSpace = new Consumer() {
+        @Override
+        public void accept(Path path) {
+            final File file = new File(String.valueOf(path));
+            if (file.isFile())
+                usedSpace += file.length();
+        }
+    };
+
+    private Consumer prepareForPurge = new Consumer() {
+        @Override
+        public void accept(Path path) {
+            if (path.endsWith(DefaultFileStorageService.SYSTEM_FILE_NAME)) return;
+            final File file = new File(String.valueOf(path));
+            if (file.isFile()) {
+                purgeSet.add(path);
+            }
+        }
+    };
+
+    static interface Consumer {
+        public void accept(Path path);
     }
 }

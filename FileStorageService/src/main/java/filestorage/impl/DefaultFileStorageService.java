@@ -121,29 +121,31 @@ public class DefaultFileStorageService implements FileStorageService {
         if (!serviceIsStarted)
             throw new StorageServiceIsNotStartedError();
 
-        final String destinationPath = PathConstructor.calculateDestinationPath(key, dataFolderPath);
+        final String validFileName = FileNameValidator.validate(key);
 
-        Path filePath = Paths.get(destinationPath, key);
+        final String destinationPath = PathConstructor.calculateDestinationPath(validFileName, dataFolderPath);
+
+        Path filePath = Paths.get(destinationPath, validFileName);
 
         try {
             Files.createDirectories(Paths.get(destinationPath));
             Files.createFile(filePath);
         } catch (FileAlreadyExistsException e) {
             LOG.warn(e.getMessage());
-            throw new FileAlreadyExistsException(key);
+            throw new FileAlreadyExistsException(validFileName);
         } catch (IOException e) {
-            LOG.error("Can't create a file {}", key);
+            LOG.error("Can't create a file {}", validFileName);
             throw new IllegalStateException(e.getMessage());
         }
 
         try {
             writeFile(filePath, Channels.newChannel(inputStream));
         } catch (IOException e) {
-            LOG.error("Can't write to a file: '{}'", key);
+            LOG.error("Can't write to a file: '{}'", validFileName);
             throw new IllegalStateException(e.getMessage());
         }
 
-        LOG.info("File '{}' saved", key);
+        LOG.info("File '{}' saved", validFileName);
     }
 
     @Override

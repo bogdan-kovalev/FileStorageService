@@ -1,9 +1,7 @@
 package filestorage.impl.exception;
 
-import filestorage.StorageException;
-
 /**
  * @author Bogdan Kovalev
  */
-public class ServiceStartError extends StorageException {
+public class ServiceStartError extends Exception {
 }

@@ -246,4 +246,14 @@ public class FunctionalTest {
             }
         }
     }
+
+    @Test
+    public void testFileNameValidation() throws Exception {
+        LOG.info("############  testFileNameValidation() ############\n");
+
+        final String actual = FileNameValidator.validate("file/\n\r\t\0\f`?*\\<>|\":_name");
+        final String expected = "file_a_b_c_d_e_f_g_h_i_j_k_l_m_n_o_name";
+
+        assertTrue("Expected: " + expected + ", actual: " + actual, actual.equals(expected));
+    }
 }
