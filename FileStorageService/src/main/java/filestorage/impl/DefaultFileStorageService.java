@@ -200,7 +200,7 @@ public class DefaultFileStorageService implements FileStorageService {
 
     @Override
     public float getFreeStorageSpaceInPercents() throws StorageServiceIsNotStartedError {
-        return getFreeStorageSpaceInBytes() / diskSpace;
+        return (float) getFreeStorageSpaceInBytes() / diskSpace;
     }
 
     /**

@@ -25,6 +25,7 @@ public class LifeTimeWatcher implements Runnable {
     private static final Logger LOG = LoggerFactory.getLogger(LifeTimeWatcher.class);
 
     public static final int SLEEP_TIME = 500;
+
     private final String STORAGE_ROOT;
 
     private final Path systemFilePath;
