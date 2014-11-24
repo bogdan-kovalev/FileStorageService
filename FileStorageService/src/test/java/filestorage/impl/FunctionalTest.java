@@ -4,10 +4,8 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.InputStream;
+import java.io.*;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayDeque;
@@ -41,7 +39,7 @@ public class FunctionalTest {
     }
 
     @Test
-    public void testStartService() throws Exception {
+    public void testStartService() throws StorageException {
         LOG.info("############  testStartService() ############\n");
         DefaultFileStorageService fileStorageService = new DefaultFileStorageService(MAX_DISK_SPACE, STORAGE_ROOT);
 
@@ -51,7 +49,7 @@ public class FunctionalTest {
     }
 
     @Test
-    public void testStopService() throws Exception {
+    public void testStopService() throws StorageException {
         LOG.info("############  testStopService() ############\n");
         DefaultFileStorageService fileStorageService = new DefaultFileStorageService(MAX_DISK_SPACE, STORAGE_ROOT);
 
@@ -62,7 +60,7 @@ public class FunctionalTest {
     }
 
     @Test
-    public void testSaveFile() throws Exception {
+    public void testSaveFile() throws StorageException, IOException {
         LOG.info("############  testSaveFile() ############\n");
         final DefaultFileStorageService fileStorageService = new DefaultFileStorageService(MAX_DISK_SPACE, STORAGE_ROOT);
         fileStorageService.startService();
@@ -79,7 +77,7 @@ public class FunctionalTest {
     }
 
     @Test
-    public void testExpiredFileDeleting() throws Exception {
+    public void testExpiredFileDeleting() throws StorageException, IOException, InterruptedException {
         LOG.info("############  testExpiredFileDeleting() ############\n");
         final DefaultFileStorageService fileStorageService = new DefaultFileStorageService(MAX_DISK_SPACE, STORAGE_ROOT);
         fileStorageService.startService();
@@ -99,7 +97,7 @@ public class FunctionalTest {
     }
 
     @Test
-    public void testReadFile() throws Exception {
+    public void testReadFile() throws StorageException, IOException {
         LOG.info("############  testReadFile() ############\n");
         final DefaultFileStorageService fileStorageService = new DefaultFileStorageService(MAX_DISK_SPACE, STORAGE_ROOT);
         fileStorageService.startService();
@@ -117,7 +115,7 @@ public class FunctionalTest {
     }
 
     @Test
-    public void testDeleteFile() throws Exception {
+    public void testDeleteFile() throws StorageException, IOException {
         LOG.info("############  testDeleteFile() ############\n");
         final DefaultFileStorageService fileStorageService = new DefaultFileStorageService(MAX_DISK_SPACE, STORAGE_ROOT);
         fileStorageService.startService();
@@ -135,7 +133,7 @@ public class FunctionalTest {
     }
 
     @Test
-    public void testGetFreeStorageSpace() throws Exception {
+    public void testGetFreeStorageSpace() throws StorageException, IOException {
         LOG.info("############  testGetFreeStorageSpace() ############\n");
         final DefaultFileStorageService fileStorageService = new DefaultFileStorageService(MAX_DISK_SPACE, STORAGE_ROOT);
         fileStorageService.startService();
@@ -171,7 +169,7 @@ public class FunctionalTest {
     }
 
     @Test
-    public void testPurge() throws Exception {
+    public void testPurge() throws StorageException, FileAlreadyExistsException {
         LOG.info("############  testPurge() ############\n");
         final DefaultFileStorageService fileStorageService = new DefaultFileStorageService(MAX_DISK_SPACE, STORAGE_ROOT);
         fileStorageService.startService();
@@ -191,7 +189,7 @@ public class FunctionalTest {
     }
 
     @Test
-    public void testGetSystemFolderSize() throws Exception {
+    public void testGetSystemFolderSize() throws StorageException, FileAlreadyExistsException {
         LOG.info("############  testGetSystemFolderSize() ############\n");
         final DefaultFileStorageService fileStorageService = new DefaultFileStorageService(MAX_DISK_SPACE, STORAGE_ROOT);
         fileStorageService.startService();
@@ -216,7 +214,7 @@ public class FunctionalTest {
     }
 
     @Test
-    public void testClearEmptyDirectories() throws Exception {
+    public void testClearEmptyDirectories() throws StorageException {
         LOG.info("############  testClearEmptyDirectories() ############\n");
         final DefaultFileStorageService fileStorageService = new DefaultFileStorageService(MAX_DISK_SPACE, STORAGE_ROOT);
         fileStorageService.startService();
@@ -248,7 +246,7 @@ public class FunctionalTest {
     }
 
     @Test
-    public void testFileNameValidation() throws Exception {
+    public void testFileNameValidation() throws StorageException {
         LOG.info("############  testFileNameValidation() ############\n");
 
         final String actual = FileNameValidator.validate("file/\n\r\t\0\f`?*\\<>|\":_name");

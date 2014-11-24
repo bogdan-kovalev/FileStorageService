@@ -64,9 +64,13 @@ public class StorageSpaceInspector {
                 if (file.isDirectory())
                     deleteEmptyDirectories(file);
             }
-        if (start.delete()) {
+        try {
+            Files.delete(start.toPath());
             if (LOG.isInfoEnabled())
                 LOG.info("'{}' directory deleted!", start);
+        } catch (IOException e) {
+            if (LOG.isWarnEnabled())
+                LOG.warn("Can't delete '{}' directory", start);
         }
     }
 
@@ -75,6 +79,7 @@ public class StorageSpaceInspector {
      *
      * @param neededFreeSpace in bytes.
      */
+
     public void purge(long neededFreeSpace) {
         if (getFreeSpace() >= neededFreeSpace) return;
 
