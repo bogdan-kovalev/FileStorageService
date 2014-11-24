@@ -1,6 +1,9 @@
 package filestorage;
 
-import filestorage.impl.exception.*;
+import filestorage.impl.exception.InvalidPercentsValueException;
+import filestorage.impl.exception.NotEnoughFreeSpaceException;
+import filestorage.impl.exception.StorageCorruptedException;
+import filestorage.impl.exception.StorageServiceIsNotStartedError;
 
 import java.io.FileNotFoundException;
 import java.io.InputStream;
@@ -12,12 +15,10 @@ import java.nio.file.FileAlreadyExistsException;
 public interface FileStorageService {
 
     void saveFile(String key, InputStream inputStream)
-            throws StorageServiceIsNotStartedError, NotEnoughFreeSpaceException, StorageCorruptedException,
-            FileLockedException, FileAlreadyExistsException;
+            throws StorageServiceIsNotStartedError, NotEnoughFreeSpaceException, StorageCorruptedException, FileAlreadyExistsException;
 
     void saveFile(String key, InputStream inputStream, long liveTimeMillis)
-            throws FileAlreadyExistsException, StorageServiceIsNotStartedError, NotEnoughFreeSpaceException,
-            FileLockedException, StorageCorruptedException;
+            throws FileAlreadyExistsException, StorageServiceIsNotStartedError, NotEnoughFreeSpaceException, StorageCorruptedException;
 
     InputStream readFile(String key) throws StorageServiceIsNotStartedError, FileNotFoundException;
 

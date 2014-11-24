@@ -2,8 +2,6 @@ package filestorage.impl;
 
 import filestorage.impl.exception.*;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.FileNotFoundException;
@@ -18,8 +16,6 @@ import java.util.Random;
  * @author Bogdan Kovalev
  */
 public class RealTest {
-    private static final Logger LOG = LoggerFactory.getLogger(RealTest.class);
-
     private static final String STORAGE_ROOT = "storage";
     private static final int MAX_DISK_SPACE = 10240;
     private static Random random = new Random();
@@ -62,8 +58,6 @@ public class RealTest {
                         } catch (NotEnoughFreeSpaceException e) {
                             e.printStackTrace();
                         } catch (StorageCorruptedException e) {
-                            e.printStackTrace();
-                        } catch (FileLockedException e) {
                             e.printStackTrace();
                         } catch (InterruptedException e) {
                             e.printStackTrace();
@@ -164,8 +158,6 @@ public class RealTest {
                             storageServiceIsNotStartedError.printStackTrace();
                         } catch (NotEnoughFreeSpaceException e) {
                             e.printStackTrace();
-                        } catch (FileLockedException e) {
-                            e.printStackTrace();
                         } catch (StorageCorruptedException e) {
                             e.printStackTrace();
                         } catch (InterruptedException e) {
@@ -190,8 +182,6 @@ public class RealTest {
                         } catch (StorageServiceIsNotStartedError storageServiceIsNotStartedError) {
                             storageServiceIsNotStartedError.printStackTrace();
                         } catch (NotEnoughFreeSpaceException e) {
-                            e.printStackTrace();
-                        } catch (FileLockedException e) {
                             e.printStackTrace();
                         } catch (StorageCorruptedException e) {
                             e.printStackTrace();

@@ -128,7 +128,8 @@ public class DefaultFileStorageService implements FileStorageService {
     }
 
     @Override
-    public void saveFile(String key, InputStream inputStream) throws FileAlreadyExistsException, StorageServiceIsNotStartedError, NotEnoughFreeSpaceException, StorageCorruptedException, FileLockedException {
+    public void saveFile(String key, InputStream inputStream) throws FileAlreadyExistsException, StorageServiceIsNotStartedError,
+            NotEnoughFreeSpaceException, StorageCorruptedException {
         if (LOG.isInfoEnabled())
             LOG.info("Saving of '{}' ...", key);
 
@@ -166,7 +167,8 @@ public class DefaultFileStorageService implements FileStorageService {
     }
 
     @Override
-    public void saveFile(String key, InputStream inputStream, long lifeTimeMillis) throws FileAlreadyExistsException, StorageServiceIsNotStartedError, NotEnoughFreeSpaceException, FileLockedException, StorageCorruptedException {
+    public void saveFile(String key, InputStream inputStream, long lifeTimeMillis) throws FileAlreadyExistsException,
+            StorageServiceIsNotStartedError, NotEnoughFreeSpaceException, StorageCorruptedException {
         if (LOG.isInfoEnabled())
             LOG.info("Life-time of '{}' = {} milliseconds", key, lifeTimeMillis);
 
@@ -278,7 +280,8 @@ public class DefaultFileStorageService implements FileStorageService {
         return serviceIsStarted;
     }
 
-    private void writeFile(Path filePath, ReadableByteChannel channel) throws IOException, StorageCorruptedException, NotEnoughFreeSpaceException, StorageServiceIsNotStartedError, FileLockedException {
+    private void writeFile(Path filePath, ReadableByteChannel channel) throws IOException, StorageCorruptedException,
+            NotEnoughFreeSpaceException, StorageServiceIsNotStartedError {
         if (LOG.isInfoEnabled())
             LOG.info("Writing of '{}' onto a disk space...", filePath);
 
