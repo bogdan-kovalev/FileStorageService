@@ -164,7 +164,7 @@ public class RealTest {
                     try {
                         while (fileStorageService.getFreeStorageSpaceInPercents() > 0.1) {
                             Thread.sleep(1);
-                            fileStorageService.saveFile(getRandomFileName(), getRandomData(), random.nextInt(20000));
+                            fileStorageService.saveFile(getRandomFileName(), getRandomData(), random.nextInt(500));
                         }
                     } catch (StorageException | FileAlreadyExistsException ignored) {
                     } catch (InterruptedException e) {
@@ -179,7 +179,7 @@ public class RealTest {
                     try {
                         while (fileStorageService.getFreeStorageSpaceInPercents() > 0.1) {
                             Thread.sleep(1);
-                            fileStorageService.saveFile(getRandomFileName(), getRandomData(), random.nextInt(20000));
+                            fileStorageService.saveFile(getRandomFileName(), getRandomData(), random.nextInt(500));
                         }
                     } catch (StorageException | FileAlreadyExistsException ignored) {
                     } catch (InterruptedException e) {
@@ -188,7 +188,7 @@ public class RealTest {
                 }
             }).start();
 
-            Thread.sleep(2000);
+            Thread.sleep(500);
             while (!savedFiles.isEmpty())
                 Thread.sleep(1000);
 

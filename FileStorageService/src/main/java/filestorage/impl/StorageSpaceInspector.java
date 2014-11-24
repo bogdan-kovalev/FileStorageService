@@ -54,23 +54,18 @@ public class StorageSpaceInspector {
     }
 
     public void deleteEmptyDirectories(File start) {
-        if (!start.isDirectory()) return;
-
         final File[] files = start.listFiles();
-        if (files != null)
-            for (File file : files) {
-                if (file.isFile()) return;
 
-                if (file.isDirectory())
-                    deleteEmptyDirectories(file);
-            }
-        try {
-            Files.delete(start.toPath());
-            if (LOG.isInfoEnabled())
-                LOG.info("'{}' directory deleted!", start);
-        } catch (IOException e) {
-            if (LOG.isWarnEnabled())
-                LOG.warn("Can't delete '{}' directory", start);
+        if (files == null) return;
+
+        for (File file : files) {
+            deleteEmptyDirectories(file);
+        }
+
+        if (start.listFiles().length == 0) {
+            if (start.delete())
+                if (LOG.isInfoEnabled())
+                    LOG.info("'{}' directory deleted!", start);
         }
     }
 
@@ -79,7 +74,6 @@ public class StorageSpaceInspector {
      *
      * @param neededFreeSpace in bytes.
      */
-
     public void purge(long neededFreeSpace) {
         if (getFreeSpace() >= neededFreeSpace) return;
 
