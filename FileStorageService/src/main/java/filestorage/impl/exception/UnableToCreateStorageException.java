@@ -1,7 +1,9 @@
 package filestorage.impl.exception;
 
+import filestorage.impl.StorageException;
+
 /**
  * @author Bogdan Kovalev
  */
-public class UnableToCreateStorageException extends Exception {
+public class UnableToCreateStorageException extends StorageException {
 }

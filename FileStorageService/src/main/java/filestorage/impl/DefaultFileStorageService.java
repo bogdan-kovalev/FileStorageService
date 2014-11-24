@@ -146,8 +146,8 @@ public class DefaultFileStorageService implements FileStorageService {
             Files.createDirectories(Paths.get(destinationPath));
             Files.createFile(filePath);
         } catch (FileAlreadyExistsException e) {
-            LOG.warn(e.getMessage());
-            throw new FileAlreadyExistsException(validFileName);
+            LOG.warn("File '{}' already exist", key);
+            throw new FileAlreadyExistsException(key);
         } catch (IOException e) {
             if (LOG.isErrorEnabled())
                 LOG.error("Can't create the file {}", validFileName);
@@ -209,8 +209,8 @@ public class DefaultFileStorageService implements FileStorageService {
                 Files.delete(filePath);
                 storageSpaceInspector.decrementUsedSpace(length);
             } catch (IOException e) {
-                if (LOG.isErrorEnabled())
-                    LOG.error("Can't delete file '{}'", key);
+                if (LOG.isWarnEnabled())
+                    LOG.warn("Can't delete file '{}'", key);
                 throw new MaybeFileInUseException(key);
             }
         }
@@ -241,7 +241,7 @@ public class DefaultFileStorageService implements FileStorageService {
     @Override
     public void purge(float neededFreeSpaceInPercents) throws StorageServiceIsNotStartedError, InvalidPercentsValueException {
         if (neededFreeSpaceInPercents < 0 || neededFreeSpaceInPercents > 1)
-            throw new InvalidPercentsValueException();
+            throw new InvalidPercentsValueException(neededFreeSpaceInPercents);
 
         purge((long) (diskSpace * neededFreeSpaceInPercents));
     }

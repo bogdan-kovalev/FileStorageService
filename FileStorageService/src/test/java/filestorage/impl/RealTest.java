@@ -1,11 +1,15 @@
 package filestorage.impl;
 
+import filestorage.impl.exception.MaybeFileInUseException;
 import filestorage.impl.exception.ServiceStartError;
+import filestorage.impl.exception.StorageServiceIsNotStartedError;
 import filestorage.impl.exception.UnableToCreateStorageException;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.FileAlreadyExistsException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -51,9 +55,27 @@ public class RealTest {
                             savedFiles.add(key);
                             Thread.sleep(100);
                         }
-                    } catch (Exception e) {
+                    } catch (StorageException | FileAlreadyExistsException ignored) {
+                    } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
+                }
+            }).start();
+
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    while (true)
+                        try {
+                            Thread.sleep(500);
+                            final int index = savedFiles.isEmpty() ? -1 : random.nextInt(savedFiles.size());
+                            if (index < 0) continue;
+                            fileStorageService.saveFile(savedFiles.get(index), getRandomData());
+                            assertFalse("Saved already existed file", true);
+                        } catch (StorageException | FileAlreadyExistsException ignored) {
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
                 }
             }).start();
 
@@ -70,7 +92,8 @@ public class RealTest {
                                     Thread.sleep(1);
                                 }
                             }
-                        } catch (Exception e) {
+                        } catch (StorageException | FileAlreadyExistsException ignored) {
+                        } catch (InterruptedException | IOException e) {
                             e.printStackTrace();
                         }
                 }
@@ -89,7 +112,8 @@ public class RealTest {
                                     Thread.sleep(1);
                                 }
                             }
-                        } catch (Exception e) {
+                        } catch (StorageException | FileAlreadyExistsException ignored) {
+                        } catch (InterruptedException | IOException e) {
                             e.printStackTrace();
                         }
                 }
@@ -104,8 +128,12 @@ public class RealTest {
                             final int index = savedFiles.isEmpty() ? -1 : random.nextInt(savedFiles.size());
                             if (index < 0) continue;
                             fileStorageService.deleteFile(savedFiles.get(index));
-                        } catch (Exception e) {
+                        } catch (InterruptedException e) {
                             e.printStackTrace();
+                        } catch (MaybeFileInUseException e) {
+                            e.printStackTrace();
+                        } catch (StorageServiceIsNotStartedError storageServiceIsNotStartedError) {
+                            storageServiceIsNotStartedError.printStackTrace();
                         }
                 }
             }).start();
@@ -120,8 +148,12 @@ public class RealTest {
                             if (index < 0) continue;
                             fileStorageService.deleteFile(savedFiles.get(index));
                             savedFiles.remove(index);
-                        } catch (Exception e) {
+                        } catch (InterruptedException e) {
                             e.printStackTrace();
+                        } catch (MaybeFileInUseException e) {
+                            e.printStackTrace();
+                        } catch (StorageServiceIsNotStartedError storageServiceIsNotStartedError) {
+                            storageServiceIsNotStartedError.printStackTrace();
                         }
                 }
             }).start();
@@ -134,7 +166,8 @@ public class RealTest {
                             Thread.sleep(1);
                             fileStorageService.saveFile(getRandomFileName(), getRandomData(), random.nextInt(20000));
                         }
-                    } catch (Exception e) {
+                    } catch (StorageException | FileAlreadyExistsException ignored) {
+                    } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                 }
@@ -148,7 +181,8 @@ public class RealTest {
                             Thread.sleep(1);
                             fileStorageService.saveFile(getRandomFileName(), getRandomData(), random.nextInt(20000));
                         }
-                    } catch (Exception e) {
+                    } catch (StorageException | FileAlreadyExistsException ignored) {
+                    } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                 }

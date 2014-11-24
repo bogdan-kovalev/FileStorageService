@@ -1,17 +1,23 @@
 package filestorage.impl.exception;
 
+import filestorage.impl.StorageException;
+
 /**
  * @author Bogdan Kovalev.
  */
-public class MaybeFileInUseException extends Exception {
+public class MaybeFileInUseException extends StorageException {
     private String key;
 
     public MaybeFileInUseException(String key) {
-        super("Maybe file '" + key + "' in use");
         this.key = key;
     }
 
     public String getKey() {
         return key;
+    }
+
+    @Override
+    public String getMessage() {
+        return "Maybe file '" + key + "' in use";
     }
 }

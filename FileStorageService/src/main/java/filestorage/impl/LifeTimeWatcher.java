@@ -1,6 +1,5 @@
 package filestorage.impl;
 
-import filestorage.impl.exception.NotEnoughFreeSpaceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,9 +78,8 @@ public class LifeTimeWatcher implements Runnable {
      *
      * @param key
      * @param liveTime
-     * @throws NotEnoughFreeSpaceException
      */
-    public void addFile(String key, long liveTime) throws NotEnoughFreeSpaceException {
+    public void addFile(String key, long liveTime) {
         systemData.setProperty(key, String.valueOf(liveTime));
         storeSystemData();
     }
