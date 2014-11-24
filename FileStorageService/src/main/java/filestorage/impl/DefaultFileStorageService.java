@@ -150,7 +150,7 @@ public class DefaultFileStorageService implements FileStorageService {
             throw new FileAlreadyExistsException(validFileName);
         } catch (IOException e) {
             if (LOG.isErrorEnabled())
-                LOG.error("Can't create a file {}", validFileName);
+                LOG.error("Can't create the file {}", validFileName);
             throw new IllegalStateException(e.getMessage());
         }
 
@@ -158,7 +158,7 @@ public class DefaultFileStorageService implements FileStorageService {
             writeFile(filePath, Channels.newChannel(inputStream));
         } catch (IOException e) {
             if (LOG.isErrorEnabled())
-                LOG.error("Can't write to a file: '{}'", validFileName);
+                LOG.error("Can't write to the file: '{}'", validFileName);
             throw new IllegalStateException(e.getMessage());
         }
 
@@ -194,7 +194,7 @@ public class DefaultFileStorageService implements FileStorageService {
     }
 
     @Override
-    public void deleteFile(String key) throws StorageServiceIsNotStartedError {
+    public void deleteFile(String key) throws StorageServiceIsNotStartedError, MaybeFileInUseException {
         if (LOG.isInfoEnabled())
             LOG.info("Deleting of '{}' ...", key);
 
@@ -210,8 +210,8 @@ public class DefaultFileStorageService implements FileStorageService {
                 storageSpaceInspector.decrementUsedSpace(length);
             } catch (IOException e) {
                 if (LOG.isErrorEnabled())
-                    LOG.error("Can't delete file {}", key);
-                throw new IllegalStateException(e.getMessage());
+                    LOG.error("Can't delete file '{}'", key);
+                throw new MaybeFileInUseException(key);
             }
         }
 

@@ -45,8 +45,6 @@ public class LifeTimeWatcher implements Runnable {
             systemData.load(new FileInputStream(String.valueOf(systemFilePath)));
         else
             Files.createDirectories(Paths.get(STORAGE_ROOT, SYSTEM_FOLDER_NAME));
-
-        deleteExpiredFiles();
     }
 
     /**
@@ -114,8 +112,8 @@ public class LifeTimeWatcher implements Runnable {
     public void run() {
         while (run) {
             try {
-                Thread.sleep(SLEEP_TIME);
                 deleteExpiredFiles();
+                Thread.sleep(SLEEP_TIME);
             } catch (InterruptedException e) {
                 synchronized (this) {
                     run = false;

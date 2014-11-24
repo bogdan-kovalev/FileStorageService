@@ -1,23 +1,23 @@
 package filestorage.impl;
 
-import filestorage.impl.exception.*;
+import filestorage.impl.exception.ServiceStartError;
+import filestorage.impl.exception.UnableToCreateStorageException;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.FileAlreadyExistsException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+
+import static org.junit.Assert.assertFalse;
 
 /**
  * @author Bogdan Kovalev
  */
 public class RealTest {
     private static final String STORAGE_ROOT = "storage";
-    private static final int MAX_DISK_SPACE = 10240;
+    private static final int MAX_DISK_SPACE = 102400;
     private static Random random = new Random();
 
     private static String getRandomFileName() {
@@ -40,164 +40,128 @@ public class RealTest {
         fileStorageService.startService();
 
         final List<String> savedFiles = new ArrayList<>();
-
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    while (fileStorageService.getFreeStorageSpaceInPercents() > 0.1)
-                        try {
+        try {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        while (fileStorageService.getFreeStorageSpaceInPercents() > 0.1) {
                             final String key = getRandomFileName();
                             fileStorageService.saveFile(key, getRandomData());
                             savedFiles.add(key);
                             Thread.sleep(100);
-                        } catch (FileAlreadyExistsException e) {
-                            e.printStackTrace();
-                        } catch (StorageServiceIsNotStartedError storageServiceIsNotStartedError) {
-                            storageServiceIsNotStartedError.printStackTrace();
-                        } catch (NotEnoughFreeSpaceException e) {
-                            e.printStackTrace();
-                        } catch (StorageCorruptedException e) {
-                            e.printStackTrace();
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
                         }
-                } catch (StorageServiceIsNotStartedError storageServiceIsNotStartedError) {
-                    storageServiceIsNotStartedError.printStackTrace();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 }
-            }
-        }).start();
+            }).start();
 
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                while (true)
-                    if (!savedFiles.isEmpty())
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    while (true)
                         try {
                             Thread.sleep(50);
-                            try (InputStream inputStream = fileStorageService.readFile(savedFiles.get(random.nextInt(savedFiles.size())))) {
+                            final int index = savedFiles.isEmpty() ? -1 : random.nextInt(savedFiles.size());
+                            if (index < 0) continue;
+                            try (InputStream inputStream = fileStorageService.readFile(savedFiles.get(index))) {
+                                while (inputStream.read() != -1) {
+                                    Thread.sleep(1);
+                                }
                             }
-                        } catch (StorageServiceIsNotStartedError storageServiceIsNotStartedError) {
-                            storageServiceIsNotStartedError.printStackTrace();
-                        } catch (FileNotFoundException e) {
-                            e.printStackTrace();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        } catch (InterruptedException e) {
+                        } catch (Exception e) {
                             e.printStackTrace();
                         }
-            }
-        }).start();
+                }
+            }).start();
 
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                while (true)
-                    if (!savedFiles.isEmpty())
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    while (true)
                         try {
                             Thread.sleep(70);
-                            try (InputStream inputStream = fileStorageService.readFile(savedFiles.get(random.nextInt(savedFiles.size())))) {
+                            final int index = savedFiles.isEmpty() ? -1 : random.nextInt(savedFiles.size());
+                            if (index < 0) continue;
+                            try (InputStream inputStream = fileStorageService.readFile(savedFiles.get(index))) {
+                                while (inputStream.read() != -1) {
+                                    Thread.sleep(1);
+                                }
                             }
-                        } catch (StorageServiceIsNotStartedError storageServiceIsNotStartedError) {
-                            storageServiceIsNotStartedError.printStackTrace();
-                        } catch (FileNotFoundException e) {
-                            e.printStackTrace();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        } catch (InterruptedException e) {
+                        } catch (Exception e) {
                             e.printStackTrace();
                         }
-            }
-        }).start();
+                }
+            }).start();
 
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                while (true)
-                    if (!savedFiles.isEmpty())
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    while (true)
                         try {
-                            Thread.sleep(1000);
-                            fileStorageService.deleteFile(savedFiles.get(random.nextInt(savedFiles.size())));
-                        } catch (StorageServiceIsNotStartedError storageServiceIsNotStartedError) {
-                            storageServiceIsNotStartedError.printStackTrace();
-                        } catch (InterruptedException e) {
+                            Thread.sleep(300);
+                            final int index = savedFiles.isEmpty() ? -1 : random.nextInt(savedFiles.size());
+                            if (index < 0) continue;
+                            fileStorageService.deleteFile(savedFiles.get(index));
+                        } catch (Exception e) {
                             e.printStackTrace();
                         }
-            }
-        }).start();
+                }
+            }).start();
 
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                while (true)
-                    if (!savedFiles.isEmpty())
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    while (true)
                         try {
-                            Thread.sleep(1000);
-                            final int index = random.nextInt(savedFiles.size());
+                            Thread.sleep(100);
+                            final int index = savedFiles.isEmpty() ? -1 : random.nextInt(savedFiles.size());
+                            if (index < 0) continue;
                             fileStorageService.deleteFile(savedFiles.get(index));
                             savedFiles.remove(index);
-                        } catch (StorageServiceIsNotStartedError storageServiceIsNotStartedError) {
-                            storageServiceIsNotStartedError.printStackTrace();
-                        } catch (InterruptedException e) {
+                        } catch (Exception e) {
                             e.printStackTrace();
                         }
-            }
-        }).start();
-
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    while (fileStorageService.getFreeStorageSpaceInPercents() > 0.1)
-                        try {
-                            Thread.sleep(70);
-                            fileStorageService.saveFile(getRandomFileName(), getRandomData(), random.nextInt(20000));
-                        } catch (FileAlreadyExistsException e) {
-                            e.printStackTrace();
-                        } catch (StorageServiceIsNotStartedError storageServiceIsNotStartedError) {
-                            storageServiceIsNotStartedError.printStackTrace();
-                        } catch (NotEnoughFreeSpaceException e) {
-                            e.printStackTrace();
-                        } catch (StorageCorruptedException e) {
-                            e.printStackTrace();
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-                } catch (StorageServiceIsNotStartedError storageServiceIsNotStartedError) {
-                    storageServiceIsNotStartedError.printStackTrace();
                 }
-            }
-        }).start();
+            }).start();
 
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    while (fileStorageService.getFreeStorageSpaceInPercents() > 0.1)
-                        try {
-                            Thread.sleep(30);
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        while (fileStorageService.getFreeStorageSpaceInPercents() > 0.1) {
+                            Thread.sleep(1);
                             fileStorageService.saveFile(getRandomFileName(), getRandomData(), random.nextInt(20000));
-                        } catch (FileAlreadyExistsException e) {
-                            e.printStackTrace();
-                        } catch (StorageServiceIsNotStartedError storageServiceIsNotStartedError) {
-                            storageServiceIsNotStartedError.printStackTrace();
-                        } catch (NotEnoughFreeSpaceException e) {
-                            e.printStackTrace();
-                        } catch (StorageCorruptedException e) {
-                            e.printStackTrace();
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
                         }
-                } catch (StorageServiceIsNotStartedError storageServiceIsNotStartedError) {
-                    storageServiceIsNotStartedError.printStackTrace();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 }
-            }
-        }).start();
+            }).start();
 
-        Thread.sleep(2000);
-        while (!savedFiles.isEmpty())
-            Thread.sleep(1000);
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        while (fileStorageService.getFreeStorageSpaceInPercents() > 0.1) {
+                            Thread.sleep(1);
+                            fileStorageService.saveFile(getRandomFileName(), getRandomData(), random.nextInt(20000));
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            }).start();
 
-        fileStorageService.stopService();
+            Thread.sleep(2000);
+            while (!savedFiles.isEmpty())
+                Thread.sleep(1000);
+
+            fileStorageService.stopService();
+
+        } catch (IllegalStateException e) {
+            assertFalse(true);
+        }
     }
 }

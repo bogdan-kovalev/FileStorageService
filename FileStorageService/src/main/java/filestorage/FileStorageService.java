@@ -1,9 +1,6 @@
 package filestorage;
 
-import filestorage.impl.exception.InvalidPercentsValueException;
-import filestorage.impl.exception.NotEnoughFreeSpaceException;
-import filestorage.impl.exception.StorageCorruptedException;
-import filestorage.impl.exception.StorageServiceIsNotStartedError;
+import filestorage.impl.exception.*;
 
 import java.io.FileNotFoundException;
 import java.io.InputStream;
@@ -22,7 +19,7 @@ public interface FileStorageService {
 
     InputStream readFile(String key) throws StorageServiceIsNotStartedError, FileNotFoundException;
 
-    void deleteFile(String key) throws StorageServiceIsNotStartedError;
+    void deleteFile(String key) throws StorageServiceIsNotStartedError, MaybeFileInUseException;
 
     long getFreeStorageSpaceInBytes() throws StorageServiceIsNotStartedError;
 
