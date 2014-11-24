@@ -48,7 +48,8 @@ public class DefaultFileStorageService implements FileStorageService {
         this.diskSpace = diskSpace;
         this.STORAGE_ROOT = storageRoot;
 
-        LOG.info("New storage. Disk space: {}. Storage root: {}", diskSpace, storageRoot);
+        if (LOG.isInfoEnabled())
+            LOG.info("New storage. Disk space: {}. Storage root: {}", diskSpace, storageRoot);
 
         this.dataFolderPath = String.valueOf(Paths.get(STORAGE_ROOT, DATA_FOLDER_NAME));
 
@@ -56,7 +57,8 @@ public class DefaultFileStorageService implements FileStorageService {
             throw new UnableToCreateStorageException();
         }
 
-        LOG.info("Storage created!");
+        if (LOG.isInfoEnabled())
+            LOG.info("Storage created!");
     }
 
     /**
@@ -66,9 +68,12 @@ public class DefaultFileStorageService implements FileStorageService {
      * @throws ServiceStartError
      */
     public void startService() throws ServiceStartError {
-        LOG.info("Try to start the service...");
+        if (LOG.isInfoEnabled())
+            LOG.info("Try to start the service...");
+
         if (serviceIsStarted) {
-            LOG.info("Service is already started");
+            if (LOG.isInfoEnabled())
+                LOG.info("Service is already started");
             return;
         }
 
@@ -77,7 +82,8 @@ public class DefaultFileStorageService implements FileStorageService {
         try {
             lifeTimeWatcher = new LifeTimeWatcher(STORAGE_ROOT, storageSpaceInspector);
         } catch (IOException e) {
-            LOG.error("Service start is failed.");
+            if (LOG.isErrorEnabled())
+                LOG.error("Service start is failed.");
             throw new ServiceStartError();
         }
 
@@ -86,7 +92,8 @@ public class DefaultFileStorageService implements FileStorageService {
 
         serviceIsStarted = true;
 
-        LOG.info("Service is started successfully.");
+        if (LOG.isInfoEnabled())
+            LOG.info("Service is started successfully.");
     }
 
     /**
@@ -94,9 +101,12 @@ public class DefaultFileStorageService implements FileStorageService {
      * After stopping, all public methods of the service will be throw {@code StorageServiceIsNotStartedError}.
      */
     public void stopService() {
-        LOG.info("Try to stop the service...");
+        if (LOG.isInfoEnabled())
+            LOG.info("Try to stop the service...");
+
         if (!serviceIsStarted) {
-            LOG.info("Service is not started");
+            if (LOG.isInfoEnabled())
+                LOG.info("Service is not started");
             return;
         }
         lifeTimeWatcherThread.interrupt();
@@ -112,12 +122,16 @@ public class DefaultFileStorageService implements FileStorageService {
         lifeTimeWatcherThread = null;
 
         serviceIsStarted = false;
-        LOG.info("Service is stopped.");
+
+        if (LOG.isInfoEnabled())
+            LOG.info("Service is stopped.");
     }
 
     @Override
     public void saveFile(String key, InputStream inputStream) throws FileAlreadyExistsException, StorageServiceIsNotStartedError, NotEnoughFreeSpaceException, StorageCorruptedException, FileLockedException {
-        LOG.info("Saving of '{}' ...", key);
+        if (LOG.isInfoEnabled())
+            LOG.info("Saving of '{}' ...", key);
+
         if (!serviceIsStarted)
             throw new StorageServiceIsNotStartedError();
 
@@ -134,23 +148,28 @@ public class DefaultFileStorageService implements FileStorageService {
             LOG.warn(e.getMessage());
             throw new FileAlreadyExistsException(validFileName);
         } catch (IOException e) {
-            LOG.error("Can't create a file {}", validFileName);
+            if (LOG.isErrorEnabled())
+                LOG.error("Can't create a file {}", validFileName);
             throw new IllegalStateException(e.getMessage());
         }
 
         try {
             writeFile(filePath, Channels.newChannel(inputStream));
         } catch (IOException e) {
-            LOG.error("Can't write to a file: '{}'", validFileName);
+            if (LOG.isErrorEnabled())
+                LOG.error("Can't write to a file: '{}'", validFileName);
             throw new IllegalStateException(e.getMessage());
         }
 
-        LOG.info("File '{}' saved", validFileName);
+        if (LOG.isInfoEnabled())
+            LOG.info("File '{}' saved", validFileName);
     }
 
     @Override
     public void saveFile(String key, InputStream inputStream, long lifeTimeMillis) throws FileAlreadyExistsException, StorageServiceIsNotStartedError, NotEnoughFreeSpaceException, FileLockedException, StorageCorruptedException {
-        LOG.info("Life-time of '{}' = {} milliseconds", key, lifeTimeMillis);
+        if (LOG.isInfoEnabled())
+            LOG.info("Life-time of '{}' = {} milliseconds", key, lifeTimeMillis);
+
         if (!serviceIsStarted)
             throw new StorageServiceIsNotStartedError();
 
@@ -161,7 +180,9 @@ public class DefaultFileStorageService implements FileStorageService {
 
     @Override
     public InputStream readFile(String key) throws StorageServiceIsNotStartedError, FileNotFoundException {
-        LOG.info("Reading of '{}' ...", key);
+        if (LOG.isInfoEnabled())
+            LOG.info("Reading of '{}' ...", key);
+
         if (!serviceIsStarted)
             throw new StorageServiceIsNotStartedError();
 
@@ -172,7 +193,9 @@ public class DefaultFileStorageService implements FileStorageService {
 
     @Override
     public void deleteFile(String key) throws StorageServiceIsNotStartedError {
-        LOG.info("Deleting of '{}' ...", key);
+        if (LOG.isInfoEnabled())
+            LOG.info("Deleting of '{}' ...", key);
+
         if (!serviceIsStarted)
             throw new StorageServiceIsNotStartedError();
 
@@ -184,11 +207,14 @@ public class DefaultFileStorageService implements FileStorageService {
                 Files.delete(filePath);
                 storageSpaceInspector.decrementUsedSpace(length);
             } catch (IOException e) {
-                LOG.error("Can't delete file {}", key);
+                if (LOG.isErrorEnabled())
+                    LOG.error("Can't delete file {}", key);
                 throw new IllegalStateException(e.getMessage());
             }
         }
-        LOG.info("File '{}' deleted.", key);
+
+        if (LOG.isInfoEnabled())
+            LOG.info("File '{}' deleted.", key);
     }
 
     @Override
@@ -220,12 +246,16 @@ public class DefaultFileStorageService implements FileStorageService {
 
     @Override
     public void purge(long neededFreeSpaceInBytes) throws StorageServiceIsNotStartedError {
-        LOG.info("Start purging of a storage disk space.");
+        if (LOG.isInfoEnabled())
+            LOG.info("Start purging of a storage disk space.");
+
         if (!serviceIsStarted)
             throw new StorageServiceIsNotStartedError();
 
         storageSpaceInspector.purge(neededFreeSpaceInBytes);
-        LOG.info("{} bytes of the storage disk space was successfully purged.", neededFreeSpaceInBytes);
+
+        if (LOG.isInfoEnabled())
+            LOG.info("{} bytes of the storage disk space was successfully purged.", neededFreeSpaceInBytes);
     }
 
     public long getSystemFolderSize() throws StorageServiceIsNotStartedError {
@@ -235,9 +265,13 @@ public class DefaultFileStorageService implements FileStorageService {
     }
 
     public void deleteEmptyDirectories() {
-        LOG.info("Deleting of an empty directories.");
+        if (LOG.isInfoEnabled())
+            LOG.info("Deleting of an empty directories.");
+
         storageSpaceInspector.deleteEmptyDirectories(new File(dataFolderPath));
-        LOG.info("Empty directories are deleted");
+
+        if (LOG.isInfoEnabled())
+            LOG.info("Empty directories are deleted");
     }
 
     public boolean serviceIsStarted() {
@@ -245,7 +279,8 @@ public class DefaultFileStorageService implements FileStorageService {
     }
 
     private void writeFile(Path filePath, ReadableByteChannel channel) throws IOException, StorageCorruptedException, NotEnoughFreeSpaceException, StorageServiceIsNotStartedError, FileLockedException {
-        LOG.info("Writing of '{}' onto a disk space...", filePath);
+        if (LOG.isInfoEnabled())
+            LOG.info("Writing of '{}' onto a disk space...", filePath);
 
         try (final FileChannel out = new FileOutputStream(String.valueOf(filePath)).getChannel()) {
 
@@ -265,7 +300,9 @@ public class DefaultFileStorageService implements FileStorageService {
             // arises when destination folders hierarchy corrupted
             throw new StorageCorruptedException();
         }
-        LOG.info("'{}' successfully written", filePath);
+
+        if (LOG.isInfoEnabled())
+            LOG.info("'{}' successfully written", filePath);
     }
 
     /**

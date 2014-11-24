@@ -65,7 +65,8 @@ public class StorageSpaceInspector {
                     deleteEmptyDirectories(file);
             }
         if (start.delete()) {
-            LOG.info("'{}' directory deleted!", start);
+            if (LOG.isInfoEnabled())
+                LOG.info("'{}' directory deleted!", start);
         }
     }
 

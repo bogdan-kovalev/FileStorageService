@@ -62,12 +62,14 @@ public class LifeTimeWatcher implements Runnable {
                 if (System.currentTimeMillis() - creationTime.toMillis() > Long.valueOf(systemData.getProperty(key))) {
                     Files.delete(path);
                     systemData.remove(key);
-                    LOG.info("Expired file '{}' successfully deleted.", key);
+                    if (LOG.isInfoEnabled())
+                        LOG.info("Expired file '{}' successfully deleted.", key);
                 }
             } catch (NoSuchFileException e) {
                 systemData.remove(key);
             } catch (IOException e) {
-                LOG.warn("Expired file '{}' was not deleted because of IOException.", key);
+                if (LOG.isWarnEnabled())
+                    LOG.warn("Expired file '{}' was not deleted because of IOException.", key);
             }
         }
 
@@ -88,7 +90,8 @@ public class LifeTimeWatcher implements Runnable {
 
     private void storeSystemData() {
         if (!haveEnoughFreeSpaceToStore()) {
-            System.out.println("Warning: Life time watcher store exception, haven't enough free space");
+            if (LOG.isWarnEnabled())
+                LOG.warn("Haven't enough free space to store system data");
             return;
         }
 
@@ -97,7 +100,8 @@ public class LifeTimeWatcher implements Runnable {
         try (final FileOutputStream fileOutputStream = new FileOutputStream(String.valueOf(systemFilePath))) {
             systemData.store(fileOutputStream, null);
         } catch (IOException e) {
-            System.out.println("Warning: Life time watcher store exception");
+            if (LOG.isWarnEnabled())
+                LOG.warn("System data storing failed");
         }
 
         long currentSize = new File(String.valueOf(systemFilePath)).length();
