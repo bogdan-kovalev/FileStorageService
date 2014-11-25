@@ -24,9 +24,9 @@ public class DefaultFileStorageService implements FileStorageService {
 
     private static final Logger LOG = LoggerFactory.getLogger(DefaultFileStorageService.class);
 
-    public static final String SYSTEM_FOLDER_NAME = "system";
-    public static final String SYSTEM_FILE_NAME = "system.data";
-    public static final String DATA_FOLDER_NAME = "data";
+    static final String SYSTEM_FOLDER_NAME = "system";
+    static final String SYSTEM_FILE_NAME = "system.data";
+    static final String DATA_FOLDER_NAME = "data";
 
     private final String STORAGE_ROOT;
 
@@ -37,6 +37,7 @@ public class DefaultFileStorageService implements FileStorageService {
 
     private LifeTimeWatcher lifeTimeWatcher;
     private StorageSpaceInspector storageSpaceInspector;
+    private PathConstructor pathConstructor = new PathConstructor();
     private Thread lifeTimeWatcherThread;
 
     /**
@@ -80,7 +81,7 @@ public class DefaultFileStorageService implements FileStorageService {
         storageSpaceInspector = new StorageSpaceInspector(diskSpace, STORAGE_ROOT);
 
         try {
-            lifeTimeWatcher = new LifeTimeWatcher(STORAGE_ROOT, storageSpaceInspector);
+            lifeTimeWatcher = new LifeTimeWatcher(STORAGE_ROOT, storageSpaceInspector, pathConstructor);
         } catch (IOException e) {
             if (LOG.isErrorEnabled())
                 LOG.error("Service start is failed.");
@@ -109,8 +110,8 @@ public class DefaultFileStorageService implements FileStorageService {
                 LOG.info("Service is not started");
             return;
         }
-        lifeTimeWatcherThread.interrupt();
 
+        lifeTimeWatcherThread.interrupt();
         synchronized (lifeTimeWatcher) {
             try {
                 lifeTimeWatcher.wait(1000);
@@ -130,6 +131,7 @@ public class DefaultFileStorageService implements FileStorageService {
     @Override
     public void saveFile(String key, InputStream inputStream) throws FileAlreadyExistsException, StorageServiceIsNotStartedError,
             NotEnoughFreeSpaceException, StorageCorruptedException {
+
         if (LOG.isInfoEnabled())
             LOG.info("Saving of '{}' ...", key);
 
@@ -138,7 +140,7 @@ public class DefaultFileStorageService implements FileStorageService {
 
         final String validFileName = FileNameValidator.validate(key);
 
-        final String destinationPath = PathConstructor.calculateDestinationPath(validFileName, dataFolderPath);
+        final String destinationPath = pathConstructor.calculateDestinationPath(validFileName, dataFolderPath);
 
         Path filePath = Paths.get(destinationPath, validFileName);
 
@@ -188,7 +190,7 @@ public class DefaultFileStorageService implements FileStorageService {
         if (!serviceIsStarted)
             throw new StorageServiceIsNotStartedError();
 
-        Path filePath = Paths.get(PathConstructor.calculateDestinationPath(key, dataFolderPath), key);
+        Path filePath = Paths.get(pathConstructor.calculateDestinationPath(key, dataFolderPath), key);
 
         return new BufferedInputStream(new FileInputStream(String.valueOf(filePath)));
     }
@@ -201,7 +203,7 @@ public class DefaultFileStorageService implements FileStorageService {
         if (!serviceIsStarted)
             throw new StorageServiceIsNotStartedError();
 
-        Path filePath = Paths.get(PathConstructor.calculateDestinationPath(key, dataFolderPath), key);
+        Path filePath = Paths.get(pathConstructor.calculateDestinationPath(key, dataFolderPath), key);
 
         if (Files.exists(filePath)) {
             try {

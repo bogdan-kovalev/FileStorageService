@@ -21,11 +21,11 @@ public class FunctionalTest {
     private static final Logger LOG = LoggerFactory.getLogger(FunctionalTest.class);
 
     private static final String STORAGE_ROOT = "storage";
-    private static final int MAX_DISK_SPACE = 10240;
+    private static final int MAX_DISK_SPACE = 1024000;
     private static Random random = new Random();
 
     private static String getRandomFileName() {
-        int nameLength = random.nextInt(5) + 10;
+        int nameLength = random.nextInt(15) + 5;
         StringBuilder fileName = new StringBuilder();
         while (nameLength-- > 0) {
             final char randomChar = (char) (random.nextInt('z' - 'a') + 'a');

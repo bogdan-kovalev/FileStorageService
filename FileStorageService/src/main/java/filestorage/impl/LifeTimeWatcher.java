@@ -33,10 +33,12 @@ public class LifeTimeWatcher implements Runnable {
     private boolean run = true;
 
     private final Properties systemData = new Properties();
+    private final PathConstructor pathConstructor;
 
-    public LifeTimeWatcher(String STORAGE_ROOT, StorageSpaceInspector inspector) throws IOException {
+    public LifeTimeWatcher(String STORAGE_ROOT, StorageSpaceInspector inspector, PathConstructor pathConstructor) throws IOException {
         this.STORAGE_ROOT = STORAGE_ROOT;
-        storageSpaceInspector = inspector;
+        this.storageSpaceInspector = inspector;
+        this.pathConstructor = pathConstructor;
 
         systemFilePath = Paths.get(STORAGE_ROOT, SYSTEM_FOLDER_NAME, DefaultFileStorageService.SYSTEM_FILE_NAME);
 
@@ -52,7 +54,7 @@ public class LifeTimeWatcher implements Runnable {
     public void deleteExpiredFiles() {
 
         for (String key : systemData.stringPropertyNames()) {
-            Path path = Paths.get(STORAGE_ROOT, PathConstructor.calculateDestinationPath(key, DATA_FOLDER_NAME), key);
+            Path path = Paths.get(STORAGE_ROOT, pathConstructor.calculateDestinationPath(key, DATA_FOLDER_NAME), key);
             try {
                 final FileTime creationTime = (FileTime) Files.getAttribute(path, "basic:creationTime");
 

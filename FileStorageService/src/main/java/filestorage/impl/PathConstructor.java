@@ -12,11 +12,24 @@ import static java.io.File.separator;
  */
 public class PathConstructor {
 
-    private static final List<Integer> DIVIDERS = new ArrayList<Integer>() {{
-        add(Math.abs(Integer.MIN_VALUE / 64));
-        add(get(0) / 128);
-        add(get(1) / 128);
-    }};
+    private static final long NUMBER_OF_HASHCODES = Math.abs((long) Integer.MIN_VALUE) + Integer.MAX_VALUE + 1;
+    private static final int DEFAULT_DEPTH = 3;
+    private static final int DEFAULT_LEVEL_CAPACITY = 128;
+
+    private final List<Integer> DIVIDERS = new ArrayList<>();
+
+    public PathConstructor(int depth, int levelCapacity) {
+        if (depth == 0) throw new IllegalStateException("PathConstructor: Invalid depth value");
+
+        DIVIDERS.add(0, (int) (NUMBER_OF_HASHCODES / levelCapacity));
+        for (int i = 1; i < depth; i++) {
+            DIVIDERS.add(i, DIVIDERS.get(i - 1) / levelCapacity);
+        }
+    }
+
+    public PathConstructor() {
+        this(DEFAULT_DEPTH, DEFAULT_LEVEL_CAPACITY);
+    }
 
     /**
      * This method returns a path where a file with this 'key' can be stored.
@@ -31,13 +44,13 @@ public class PathConstructor {
      * @param startFolder
      * @return
      */
-    public static String calculateDestinationPath(String key, String startFolder) {
-        final int hashcode = key.hashCode();
+    public String calculateDestinationPath(String key, String startFolder) {
+        final long unsigned_hashcode = key.hashCode() + Math.abs((long) Integer.MIN_VALUE);
 
         String path = "";
 
         for (int div : DIVIDERS) {
-            long left_boundary = hashcode - hashcode % div;
+            long left_boundary = unsigned_hashcode - unsigned_hashcode % div;
             long right_boundary = left_boundary + div - 1;
             path += separator + createName(left_boundary, right_boundary);
         }
