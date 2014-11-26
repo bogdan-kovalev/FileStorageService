@@ -15,7 +15,7 @@ import static filestorage.impl.DefaultFileStorageService.DATA_FOLDER_NAME;
 import static filestorage.impl.DefaultFileStorageService.SYSTEM_FOLDER_NAME;
 
 /**
- * This class provides possibility to delete expired files.
+ * This class automatically deletes expired files.
  *
  * @author Bogdan Kovalev.
  */
@@ -26,14 +26,14 @@ public class LifeTimeWatcher implements Runnable {
     public static final int SLEEP_TIME = 500;
 
     private final String STORAGE_ROOT;
-
     private final Path systemFilePath;
-    private final StorageSpaceInspector storageSpaceInspector;
-
-    private boolean run = true;
 
     private final Properties systemData = new Properties();
+
+    private final StorageSpaceInspector storageSpaceInspector;
     private final PathConstructor pathConstructor;
+
+    private boolean run = true;
 
     public LifeTimeWatcher(String STORAGE_ROOT, StorageSpaceInspector inspector, PathConstructor pathConstructor) throws IOException {
         this.STORAGE_ROOT = STORAGE_ROOT;
@@ -76,7 +76,7 @@ public class LifeTimeWatcher implements Runnable {
     }
 
     /**
-     * This method adds file with this key and life time to the system.data file.
+     * This method adds file with this 'key' and 'lifeTime' to the system.data file.
      *
      * @param key
      * @param liveTime
@@ -132,9 +132,7 @@ public class LifeTimeWatcher implements Runnable {
     }
 
     /**
-     * Returns size of systemData object in bytes.
-     *
-     * @return
+     * @return size of systemData object in bytes.
      */
     private long calculateDataOutSize() {
         long outSize = 0;

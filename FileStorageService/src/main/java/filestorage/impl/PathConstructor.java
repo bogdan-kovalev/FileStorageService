@@ -18,6 +18,10 @@ public class PathConstructor {
 
     private final List<Integer> DIVIDERS = new ArrayList<>();
 
+    /**
+     * @param depth         - level of the folders nesting
+     * @param levelCapacity - maximum number of subdirectories in directory on each level of nesting
+     */
     public PathConstructor(int depth, int levelCapacity) {
         if (depth == 0) throw new IllegalStateException("PathConstructor: Invalid depth value");
 
@@ -33,12 +37,12 @@ public class PathConstructor {
 
     /**
      * This method returns a path where a file with this 'key' can be stored.
-     * Algorithm work basics on the hash-code value of the 'key'. Destination path for the file with the given 'key'
-     * represent a nested folders. Level of the nesting equal to the number of the 'DIVIDERS' and it equals 3.
+     * Algorithm work basics on the unsigned hash-code value of the 'key'. Destination path for the file with the given 'key'
+     * represent a nested folders. Level of the nesting equals to the number of the 'DIVIDERS' and it equals 3 (DEFAULT_DEPTH).
      * The name of each folder in a folders hierarchy echoes to the range of the values of the hash-code that this folder
      * can contains.<p>
      * Example:<p>
-     * <i><b>'startFolder'</b>\[-1207959552_-1174405121]\[-1215299584_-1215037441]\[-1215328256_-1215326209]\</i>
+     * <i><b>'startFolder'</b>\[1207959552_1174405121]\[1215299584_1215037441]\[1215328256_1215326209]\</i>
      *
      * @param key
      * @param startFolder

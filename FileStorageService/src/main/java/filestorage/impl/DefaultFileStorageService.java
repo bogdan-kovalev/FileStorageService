@@ -90,7 +90,6 @@ public class DefaultFileStorageService implements FileStorageService {
 
         lifeTimeWatcherThread = new Thread(lifeTimeWatcher);
         lifeTimeWatcherThread.start();
-
         serviceIsStarted = true;
 
         if (LOG.isInfoEnabled())
@@ -121,7 +120,6 @@ public class DefaultFileStorageService implements FileStorageService {
 
         lifeTimeWatcher = null;
         lifeTimeWatcherThread = null;
-
         serviceIsStarted = false;
 
         if (LOG.isInfoEnabled())
@@ -129,8 +127,7 @@ public class DefaultFileStorageService implements FileStorageService {
     }
 
     @Override
-    public void saveFile(String key, InputStream inputStream) throws FileAlreadyExistsException, StorageServiceIsNotStartedError,
-            NotEnoughFreeSpaceException, StorageCorruptedException {
+    public void saveFile(String key, InputStream inputStream) throws FileAlreadyExistsException, StorageServiceIsNotStartedError, NotEnoughFreeSpaceException, StorageCorruptedException {
 
         if (LOG.isInfoEnabled())
             LOG.info("Saving of '{}' ...", key);
@@ -139,38 +136,19 @@ public class DefaultFileStorageService implements FileStorageService {
             throw new StorageServiceIsNotStartedError();
 
         final String validFileName = FileNameValidator.validate(key);
-
         final String destinationPath = pathConstructor.calculateDestinationPath(validFileName, dataFolderPath);
+        final Path filePath = Paths.get(destinationPath, validFileName);
 
-        Path filePath = Paths.get(destinationPath, validFileName);
+        atomicallyCreateFile(key, validFileName, destinationPath, filePath);
 
-        try {
-            Files.createDirectories(Paths.get(destinationPath));
-            Files.createFile(filePath);
-        } catch (FileAlreadyExistsException e) {
-            LOG.warn("File '{}' already exist", key);
-            throw new FileAlreadyExistsException(key);
-        } catch (IOException e) {
-            if (LOG.isErrorEnabled())
-                LOG.error("Can't create the file {}", validFileName);
-            throw new IllegalStateException(e.getMessage());
-        }
-
-        try {
-            writeFile(filePath, Channels.newChannel(inputStream));
-        } catch (IOException e) {
-            if (LOG.isErrorEnabled())
-                LOG.error("Can't write to the file: '{}'", validFileName);
-            throw new IllegalStateException(e.getMessage());
-        }
+        writeFile(filePath, Channels.newChannel(inputStream));
 
         if (LOG.isInfoEnabled())
             LOG.info("File '{}' saved", validFileName);
     }
 
     @Override
-    public void saveFile(String key, InputStream inputStream, long lifeTimeMillis) throws FileAlreadyExistsException,
-            StorageServiceIsNotStartedError, NotEnoughFreeSpaceException, StorageCorruptedException {
+    public void saveFile(String key, InputStream inputStream, long lifeTimeMillis) throws FileAlreadyExistsException, StorageServiceIsNotStartedError, NotEnoughFreeSpaceException, StorageCorruptedException {
         if (LOG.isInfoEnabled())
             LOG.info("Life-time of '{}' = {} milliseconds", key, lifeTimeMillis);
 
@@ -275,7 +253,21 @@ public class DefaultFileStorageService implements FileStorageService {
         return serviceIsStarted;
     }
 
-    private void writeFile(Path filePath, ReadableByteChannel channel) throws IOException, StorageCorruptedException,
+    private void atomicallyCreateFile(String key, String validFileName, String destinationPath, Path filePath) throws FileAlreadyExistsException {
+        try {
+            Files.createDirectories(Paths.get(destinationPath));
+            Files.createFile(filePath);
+        } catch (FileAlreadyExistsException e) {
+            LOG.warn("File '{}' already exist", key);
+            throw new FileAlreadyExistsException(key);
+        } catch (IOException e) {
+            if (LOG.isErrorEnabled())
+                LOG.error("Can't create the file {}", validFileName);
+            throw new IllegalStateException(e.getMessage());
+        }
+    }
+
+    private void writeFile(Path filePath, ReadableByteChannel channel) throws StorageCorruptedException,
             NotEnoughFreeSpaceException, StorageServiceIsNotStartedError {
         if (LOG.isInfoEnabled())
             LOG.info("Writing of '{}' onto a disk space...", filePath);
@@ -297,6 +289,10 @@ public class DefaultFileStorageService implements FileStorageService {
         } catch (FileNotFoundException e) {
             // arises when destination folders hierarchy corrupted
             throw new StorageCorruptedException();
+        } catch (IOException e) {
+            if (LOG.isErrorEnabled())
+                LOG.error("Can't write to the file: '{}'", filePath);
+            throw new IllegalStateException(e.getMessage());
         }
 
         if (LOG.isInfoEnabled())

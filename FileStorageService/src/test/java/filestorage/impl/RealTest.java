@@ -43,6 +43,7 @@ public class RealTest {
 
     @Test
     public void testMultiThreading() throws UnableToCreateStorageException, ServiceStartError, InterruptedException {
+        LOG.info("############  testMultiThreading() ############\n");
         final DefaultFileStorageService fileStorageService = new DefaultFileStorageService(MAX_DISK_SPACE, STORAGE_ROOT);
         fileStorageService.startService();
 

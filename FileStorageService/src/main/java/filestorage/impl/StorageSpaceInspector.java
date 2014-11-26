@@ -15,6 +15,9 @@ import java.util.Deque;
 import java.util.TreeSet;
 
 /**
+ * This class provides possibility to calculate used storage disk space, purge files, calculate system folder size and
+ * delete empty directories.
+ *
  * @author Bogdan Kovalev.
  */
 public class StorageSpaceInspector {
@@ -92,7 +95,7 @@ public class StorageSpaceInspector {
     }
 
     /**
-     * This method will be accept this consumer for all file-paths in the storage.
+     * This method will be accept the consumer for all file-paths in the storage.
      *
      * @param consumer consumer with specific function
      */

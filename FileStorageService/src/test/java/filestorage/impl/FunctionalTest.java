@@ -1,5 +1,6 @@
 package filestorage.impl;
 
+import filestorage.impl.exception.StorageException;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
