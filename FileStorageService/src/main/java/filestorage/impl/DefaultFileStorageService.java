@@ -233,33 +233,26 @@ public class DefaultFileStorageService implements FileStorageService {
         return (float) getFreeStorageSpaceInBytes() / diskSpace;
     }
 
-    /**
-     * This method releases free disk space by deleting old files.
-     *
-     * @param neededFreeSpaceInPercents - The percentage of required free space from the total disk space.
-     * @throws StorageServiceIsNotStartedError
-     * @throws InvalidPercentsValueException
-     */
     @Override
-    public void purge(float neededFreeSpaceInPercents) throws StorageServiceIsNotStartedError, InvalidPercentsValueException {
-        if (neededFreeSpaceInPercents < 0 || neededFreeSpaceInPercents > 1)
-            throw new InvalidPercentsValueException(neededFreeSpaceInPercents);
+    public void purge(float requiredFreeSpaceInPercents) throws StorageServiceIsNotStartedError, InvalidPercentsValueException {
+        if (requiredFreeSpaceInPercents < 0 || requiredFreeSpaceInPercents > 1)
+            throw new InvalidPercentsValueException(requiredFreeSpaceInPercents);
 
-        purge((long) (diskSpace * neededFreeSpaceInPercents));
+        purge((long) (diskSpace * requiredFreeSpaceInPercents));
     }
 
     @Override
-    public void purge(long neededFreeSpaceInBytes) throws StorageServiceIsNotStartedError {
+    public void purge(long requiredFreeSpaceInBytes) throws StorageServiceIsNotStartedError {
         if (LOG.isInfoEnabled())
             LOG.info("Start purging of a storage disk space.");
 
         if (!serviceIsStarted)
             throw new StorageServiceIsNotStartedError();
 
-        storageSpaceInspector.purge(neededFreeSpaceInBytes);
+        storageSpaceInspector.purge(requiredFreeSpaceInBytes);
 
         if (LOG.isInfoEnabled())
-            LOG.info("{} bytes of the storage disk space was successfully purged.", neededFreeSpaceInBytes);
+            LOG.info("{} bytes of the storage disk space was successfully purged.", requiredFreeSpaceInBytes);
     }
 
     public long getSystemFolderSize() throws StorageServiceIsNotStartedError {
@@ -310,9 +303,6 @@ public class DefaultFileStorageService implements FileStorageService {
             LOG.info("'{}' successfully written", filePath);
     }
 
-    /**
-     * @return true if and only if storage root folder was created.
-     */
     private boolean createStorage() {
         final File root = new File(STORAGE_ROOT);
         return root.exists() || root.mkdir();

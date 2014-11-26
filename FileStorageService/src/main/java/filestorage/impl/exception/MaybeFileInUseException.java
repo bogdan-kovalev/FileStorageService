@@ -3,6 +3,8 @@ package filestorage.impl.exception;
 import filestorage.impl.StorageException;
 
 /**
+ * Checked exception thrown when deleting of a file can not be provided, because another thread currently reading this file.
+ *
  * @author Bogdan Kovalev.
  */
 public class MaybeFileInUseException extends StorageException {

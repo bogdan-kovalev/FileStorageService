@@ -3,6 +3,8 @@ package filestorage.impl.exception;
 import filestorage.impl.StorageException;
 
 /**
+ * Checked exception thrown when percentage is not in 0.0 ... 1.0 range.
+ *
  * @author Bogdan Kovalev.
  */
 public class InvalidPercentsValueException extends StorageException {
