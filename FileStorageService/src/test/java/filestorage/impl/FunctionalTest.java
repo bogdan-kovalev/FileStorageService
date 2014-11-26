@@ -22,7 +22,7 @@ public class FunctionalTest {
     private static final Logger LOG = LoggerFactory.getLogger(FunctionalTest.class);
 
     private static final String STORAGE_ROOT = "storage";
-    private static final int MAX_DISK_SPACE = 1024000;
+    private static final int MAX_DISK_SPACE = 10240;
     private static Random random = new Random();
 
     private static String getRandomFileName() {
