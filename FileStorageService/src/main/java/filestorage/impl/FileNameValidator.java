@@ -1,5 +1,9 @@
 package filestorage.impl;
 
+import com.google.common.base.Ascii;
+import com.google.common.escape.ArrayBasedCharEscaper;
+import com.google.common.escape.CharEscaper;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -27,19 +31,15 @@ public class FileNameValidator {
     }};
 
     public static String validate(String input) {
+
         if (input == null) return null;
-
-        StringBuilder out = new StringBuilder();
-
-        for (char c : input.toCharArray()) {
-            final String replacement = ILLEGAL_CHARACTERS_REPLACEMENT.get(c);
-            if (replacement == null) {
-                out.append(c);
-            } else {
-                out.append(replacement);
+        CharEscaper replacingEscaper = new ArrayBasedCharEscaper(ILLEGAL_CHARACTERS_REPLACEMENT, Ascii.MIN, Ascii.MAX) {
+            @Override
+            protected char[] escapeUnsafe(char c) {
+                return new char[0];
             }
-        }
+        };
 
-        return out.toString();
+        return replacingEscaper.escape(input);
     }
 }
